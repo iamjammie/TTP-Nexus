@@ -1,0 +1,42 @@
+TTP NEXUS — data provenance and trademark notice
+==================================================
+
+This project is an independent, educational tool. It is NOT affiliated with,
+sponsored by, or endorsed by The MITRE Corporation or the OWASP Foundation.
+
+Trademarks
+----------
+- MITRE ATT&CK(R), MITRE D3FEND(TM), CAPEC(TM), and CWE(TM) are trademarks of
+  The MITRE Corporation.
+- OWASP(R) is a registered trademark of the OWASP Foundation, Inc.
+All trademarks are the property of their respective owners.
+
+Embedded data
+-------------
+The knowledge base embedded in this application (data/kb_data.json) is a
+CURATED EDUCATIONAL SUBSET. Technique/pattern/weakness descriptions are
+PARAPHRASED SUMMARIES written for this project — they are NOT official
+framework text. Curated subsets are explicitly partial and labelled as such
+in the application. Cross-framework mappings carry a source and a confidence
+level (Official / Validated / Curated / Inferred); mappings that are not known
+are omitted rather than invented. Detection guidance is curated educational
+material, not validated detections.
+
+Official sources (for the complete, authoritative data)
+-------------------------------------------------------
+- MITRE ATT&CK .......... https://attack.mitre.org/  (STIX: https://github.com/mitre-attack/attack-stix-data)
+- MITRE D3FEND .......... https://d3fend.mitre.org/
+- MITRE CAPEC ........... https://capec.mitre.org/
+- MITRE CWE ............. https://cwe.mitre.org/
+- CVE / NVD ............. https://nvd.nist.gov/
+- OWASP Top 10 .......... https://owasp.org/Top10/
+
+When run in Online mode (or via Dataset Update Center > Import dataset file),
+the application can load the complete official ATT&CK STIX data directly from
+MITRE; that content is owned by MITRE and provided under MITRE's terms of use.
+
+Intended use
+------------
+For cybersecurity education, authorized penetration testing, threat hunting,
+detection engineering, and defensive analysis only. All hands-on/lab content
+is written for authorized, explicitly scoped, isolated environments.

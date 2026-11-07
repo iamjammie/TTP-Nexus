@@ -1,0 +1,15 @@
+# Node / tooling
+node_modules/
+npm-debug.log*
+
+# Test scratch (harness.js may emit split script blocks)
+build/_s*.js
+*.tmp
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editors
+.vscode/
+.idea/

@@ -1,0 +1,1499 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>TTP NEXUS</title>
+<style>
+:root{
+  --bg:#0b0f14; --bg2:#0e141b; --panel:#101a26; --panel2:#0c1521; --panel3:#13202f;
+  --border:#1d2d3f; --border2:#28415a; --text:#d8e3ef; --text-dim:#8aa0b6; --text-faint:#5f758c;
+  --cyan:#35d0d8; --blue:#3b82f6; --blue2:#60a5fa; --amber:#f0a12e; --red:#ef4a5a; --green:#2fbf71; --purple:#a06bd8;
+  --off:#ef4a5a; --def:#2fbf71; --radius:10px; --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  --sans:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;height:100%}
+body{background:var(--bg);color:var(--text);font-family:var(--sans);font-size:14px;line-height:1.5;
+  background-image:linear-gradient(rgba(53,208,216,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(53,208,216,.025) 1px,transparent 1px);
+  background-size:34px 34px;}
+a{color:var(--blue2);text-decoration:none}
+button{font-family:inherit;cursor:pointer}
+::-webkit-scrollbar{width:10px;height:10px}
+::-webkit-scrollbar-thumb{background:var(--border2);border-radius:6px}
+::-webkit-scrollbar-track{background:transparent}
+
+/* layout */
+#app{display:flex;min-height:100vh}
+#sidebar{width:236px;flex-shrink:0;background:linear-gradient(180deg,var(--panel),var(--panel2));
+  border-right:1px solid var(--border);position:sticky;top:0;height:100vh;overflow-y:auto;transition:width .18s;z-index:30}
+#sidebar.collapsed{width:60px}
+.brand{display:flex;align-items:center;gap:10px;padding:16px 16px 14px;border-bottom:1px solid var(--border)}
+.brand .logo{width:30px;height:30px;flex-shrink:0;border-radius:7px;background:linear-gradient(135deg,var(--cyan),var(--blue));
+  display:grid;place-items:center;font-weight:800;color:#04121a;font-size:15px}
+.brand .bt{font-weight:700;letter-spacing:.3px;font-size:15px;white-space:nowrap}
+.brand .bt small{display:block;color:var(--text-faint);font-weight:500;font-size:10px;letter-spacing:1.5px;text-transform:uppercase}
+#sidebar.collapsed .bt,#sidebar.collapsed .nav-label,#sidebar.collapsed .nav-sec{display:none}
+nav{padding:8px 8px 20px}
+.nav-sec{padding:14px 10px 6px;font-size:10px;letter-spacing:1.4px;text-transform:uppercase;color:var(--text-faint)}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 11px;border-radius:8px;color:var(--text-dim);
+  cursor:pointer;margin:1px 0;white-space:nowrap;border:1px solid transparent;font-size:13px}
+.nav-item:hover{background:var(--panel3);color:var(--text)}
+.nav-item.active{background:linear-gradient(90deg,rgba(53,208,216,.14),rgba(59,130,246,.05));color:#fff;border-color:var(--border2)}
+.nav-item .ic{width:18px;text-align:center;flex-shrink:0;font-size:14px}
+.nav-item.active .ic{color:var(--cyan)}
+
+#content{flex:1;min-width:0;display:flex;flex-direction:column}
+#topbar{display:flex;align-items:center;gap:12px;padding:12px 20px;border-bottom:1px solid var(--border);
+  background:rgba(11,15,20,.75);backdrop-filter:blur(8px);position:sticky;top:0;z-index:20}
+#burger{background:var(--panel3);border:1px solid var(--border);color:var(--text);width:34px;height:34px;border-radius:8px;font-size:15px}
+.topsearch{flex:1;max-width:620px;position:relative}
+.topsearch input{width:100%;background:var(--panel2);border:1px solid var(--border2);color:var(--text);
+  padding:9px 14px 9px 36px;border-radius:9px;font-size:13px;outline:none}
+.topsearch input:focus{border-color:var(--cyan);box-shadow:0 0 0 3px rgba(53,208,216,.12)}
+.topsearch .si{position:absolute;left:12px;top:9px;color:var(--text-faint)}
+.topsearch .sx{position:absolute;right:10px;top:7px;color:var(--text-faint);background:none;border:none;font-size:16px;display:none}
+.sugg{position:absolute;top:44px;left:0;right:0;background:var(--panel);border:1px solid var(--border2);border-radius:10px;
+  overflow:hidden;z-index:60;max-height:420px;overflow-y:auto;box-shadow:0 18px 40px rgba(0,0,0,.5)}
+.sugg .sg-item{padding:9px 14px;cursor:pointer;display:flex;align-items:center;gap:10px;border-bottom:1px solid var(--border)}
+.sugg .sg-item:hover{background:var(--panel3)}
+.tag{font-size:10px;padding:2px 7px;border-radius:5px;font-weight:700;letter-spacing:.4px;white-space:nowrap}
+.tag.attack{background:rgba(239,74,90,.16);color:#ff8a94}
+.tag.ics{background:rgba(240,161,46,.16);color:#f6c173}
+.tag.mobile{background:rgba(160,107,216,.16);color:#c9a6ea}
+.tag.d3fend{background:rgba(47,191,113,.16);color:#7ee0a6}
+.tag.capec{background:rgba(59,130,246,.16);color:#8fb8f6}
+.tag.cwe{background:rgba(53,208,216,.14);color:#7fe4ea}
+.tag.cve{background:rgba(239,74,90,.12);color:#f29aa2}
+.tag.killchain{background:rgba(160,107,216,.14);color:#c9a6ea}
+.tag.ptes,.tag.wstg,.tag.owasp,.tag.nist{background:rgba(138,160,182,.14);color:#aebfd0}
+.tag.mit{background:rgba(47,191,113,.12);color:#7ee0a6}
+
+#main{padding:22px 24px 60px;max-width:1500px;width:100%}
+.view-title{font-size:21px;font-weight:700;margin:0 0 3px}
+.view-sub{color:var(--text-dim);margin:0 0 20px;font-size:13px}
+.panel{background:linear-gradient(180deg,var(--panel),var(--panel2));border:1px solid var(--border);border-radius:var(--radius);padding:18px}
+.panel+.panel{margin-top:16px}
+.grid{display:grid;gap:14px}
+.muted{color:var(--text-dim)}.faint{color:var(--text-faint)}
+.mono{font-family:var(--mono)}
+.chip{display:inline-flex;align-items:center;gap:6px;background:var(--panel3);border:1px solid var(--border2);
+  color:var(--text-dim);padding:3px 9px;border-radius:20px;font-size:11px;margin:2px 3px 2px 0}
+.chip.on{background:rgba(53,208,216,.16);border-color:var(--cyan);color:#bff0f3}
+.btn{background:var(--panel3);border:1px solid var(--border2);color:var(--text);padding:8px 13px;border-radius:8px;font-size:12.5px;font-weight:600}
+.btn:hover{border-color:var(--cyan)}
+.btn.primary{background:linear-gradient(135deg,var(--cyan),var(--blue));color:#04121a;border:none}
+.btn.sm{padding:5px 9px;font-size:11.5px}
+.btn.danger{border-color:rgba(239,74,90,.5);color:#ff9aa3}
+.row{display:flex;gap:10px;flex-wrap:wrap;align-items:center}
+.sp{flex:1}
+input,select,textarea{font-family:inherit}
+.field{background:var(--panel2);border:1px solid var(--border2);color:var(--text);padding:8px 11px;border-radius:8px;font-size:13px;outline:none}
+.field:focus{border-color:var(--cyan)}
+label.lbl{font-size:11px;letter-spacing:.5px;text-transform:uppercase;color:var(--text-faint);display:block;margin-bottom:5px}
+
+/* stat cards */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px}
+.stat{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:14px 16px;position:relative;overflow:hidden}
+.stat::before{content:"";position:absolute;left:0;top:0;bottom:0;width:3px;background:var(--cyan)}
+.stat.off::before{background:var(--off)}.stat.def::before{background:var(--def)}.stat.b::before{background:var(--blue)}
+.stat .n{font-size:26px;font-weight:800;font-family:var(--mono);line-height:1}
+.stat .l{color:var(--text-dim);font-size:11.5px;margin-top:5px;text-transform:uppercase;letter-spacing:.5px}
+
+.card-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(230px,1fr));gap:12px}
+.fcard{background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:15px;cursor:pointer;transition:.14s}
+.fcard:hover{border-color:var(--border2);transform:translateY(-2px)}
+.fcard h4{margin:0 0 4px;font-size:14px}
+.fcard p{margin:0;color:var(--text-dim);font-size:12px}
+.fcard .cnt{font-size:11px;color:var(--cyan);font-family:var(--mono);margin-top:9px}
+
+/* list + detail layout */
+.split{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.15fr);gap:16px;align-items:start}
+@media(max-width:1050px){.split{grid-template-columns:1fr}}
+.list{max-height:calc(100vh - 230px);overflow-y:auto}
+.li{padding:11px 13px;border:1px solid var(--border);border-radius:9px;margin-bottom:8px;cursor:pointer;background:var(--panel2)}
+.li:hover{border-color:var(--border2)}
+.li.sel{border-color:var(--cyan);background:rgba(53,208,216,.07)}
+.li .id{font-family:var(--mono);font-size:12px;color:var(--cyan)}
+.li .nm{font-weight:600;font-size:13.5px;margin:2px 0}
+.li .ds{color:var(--text-dim);font-size:12px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.li.off .id{color:#ff8a94}.li.def .id{color:#7ee0a6}
+
+.detail{position:sticky;top:76px;max-height:calc(100vh - 96px);overflow-y:auto}
+.tabs{display:flex;gap:4px;border-bottom:1px solid var(--border);margin:14px 0 14px;flex-wrap:wrap}
+.tab{padding:7px 12px;color:var(--text-dim);border-bottom:2px solid transparent;font-size:12.5px;font-weight:600;cursor:pointer}
+.tab.active{color:#fff;border-color:var(--cyan)}
+.kv{display:grid;grid-template-columns:130px 1fr;gap:6px 14px;font-size:13px;margin:4px 0}
+.kv .k{color:var(--text-faint);font-size:11.5px;text-transform:uppercase;letter-spacing:.4px;padding-top:1px}
+.rel{display:inline-flex;align-items:center;gap:5px;padding:4px 9px;border-radius:7px;font-size:11.5px;margin:3px 4px 3px 0;
+  background:var(--panel3);border:1px solid var(--border2);cursor:pointer;font-family:var(--mono)}
+.rel:hover{border-color:var(--cyan)}
+.srcflag{font-size:9.5px;padding:1px 5px;border-radius:4px;background:var(--panel);border:1px solid var(--border2);color:var(--text-faint);
+  text-transform:uppercase;letter-spacing:.4px;margin-left:5px}
+.srcflag.auth{color:#7ee0a6;border-color:rgba(47,191,113,.4)}
+.srcflag.analyst{color:#f6c173;border-color:rgba(240,161,46,.4)}
+.sectitle{font-size:11px;letter-spacing:1px;text-transform:uppercase;color:var(--text-faint);margin:16px 0 7px;border-bottom:1px solid var(--border);padding-bottom:5px}
+ul.clean{margin:6px 0;padding-left:18px}ul.clean li{margin:3px 0;font-size:13px}
+
+/* kill chain strip */
+.kc-strip{display:flex;gap:8px;overflow-x:auto;padding:6px 2px 12px}
+.kc-stage{min-width:135px;flex:1;background:var(--panel2);border:1px solid var(--border);border-radius:10px;padding:12px;
+  cursor:pointer;position:relative;transition:.14s}
+.kc-stage:hover{border-color:var(--cyan);transform:translateY(-2px)}
+.kc-stage .num{font-family:var(--mono);font-size:11px;color:var(--text-faint)}
+.kc-stage .kn{font-weight:700;font-size:13px;margin:4px 0}
+.kc-stage .arrow{position:absolute;right:-11px;top:50%;transform:translateY(-50%);color:var(--border2);z-index:2;font-size:14px}
+.kc-stage.on{border-color:var(--cyan);background:rgba(53,208,216,.08)}
+
+/* matrix */
+.matrix-wrap{overflow:auto;border:1px solid var(--border);border-radius:10px;max-height:calc(100vh - 250px)}
+.matrix{display:flex;gap:0;min-width:max-content}
+.mcol{min-width:148px;border-right:1px solid var(--border);display:flex;flex-direction:column}
+.mcol .mh{padding:8px 9px;background:var(--panel);border-bottom:1px solid var(--border2);position:sticky;top:0;z-index:2}
+.mcol .mh .tn{font-size:11.5px;font-weight:700}.mcol .mh .tc{font-size:10px;color:var(--text-faint);font-family:var(--mono)}
+.cell{padding:6px 9px;border-bottom:1px solid var(--border);font-size:11.5px;cursor:pointer;line-height:1.3}
+.cell:hover{background:var(--panel3)}
+.cell .cid{font-family:var(--mono);font-size:10px;color:var(--text-faint)}
+.cell.scored{box-shadow:inset 3px 0 0 var(--score,var(--cyan))}
+
+/* graph */
+.graph-wrap{border:1px solid var(--border);border-radius:10px;background:radial-gradient(circle at 50% 40%,#0d1826,#0a0f16);overflow:hidden;position:relative}
+.graph-wrap svg{display:block;width:100%;cursor:grab}
+.graph-wrap svg:active{cursor:grabbing}
+.glegend{position:absolute;bottom:10px;left:10px;background:rgba(10,15,22,.85);border:1px solid var(--border2);border-radius:8px;padding:8px 10px;font-size:11px}
+.glegend span{display:inline-flex;align-items:center;gap:5px;margin-right:12px}
+.gdot{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+/* flashcard */
+.flash{perspective:1400px;max-width:460px;margin:0 auto}
+.flash-inner{position:relative;height:280px;transition:transform .5s;transform-style:preserve-3d;cursor:pointer}
+.flash.flip .flash-inner{transform:rotateY(180deg)}
+.flash-face{position:absolute;inset:0;backface-visibility:hidden;border:1px solid var(--border2);border-radius:14px;
+  padding:24px;display:flex;flex-direction:column;justify-content:center;background:linear-gradient(145deg,var(--panel),var(--panel2))}
+.flash-back{transform:rotateY(180deg);background:linear-gradient(145deg,#0c1a14,#0a1510);border-color:rgba(47,191,113,.3)}
+
+/* quiz */
+.qopt{padding:11px 14px;border:1px solid var(--border2);border-radius:9px;margin:7px 0;cursor:pointer;background:var(--panel2)}
+.qopt:hover{border-color:var(--cyan)}
+.qopt.correct{border-color:var(--green);background:rgba(47,191,113,.12)}
+.qopt.wrong{border-color:var(--red);background:rgba(239,74,90,.12)}
+
+/* toast + modal */
+#toast{position:fixed;bottom:22px;right:22px;z-index:200;display:flex;flex-direction:column;gap:8px}
+.tmsg{background:var(--panel);border:1px solid var(--border2);border-left:3px solid var(--cyan);padding:11px 16px;border-radius:8px;
+  font-size:13px;box-shadow:0 10px 30px rgba(0,0,0,.5);animation:slidein .25s}
+@keyframes slidein{from{transform:translateX(40px);opacity:0}}
+.modal-bg{position:fixed;inset:0;background:rgba(4,8,12,.72);z-index:150;display:grid;place-items:center;padding:20px}
+.modal{background:var(--panel);border:1px solid var(--border2);border-radius:14px;max-width:640px;width:100%;max-height:86vh;overflow-y:auto;padding:22px}
+.modal h3{margin:0 0 14px}
+.close-x{float:right;background:none;border:none;color:var(--text-dim);font-size:22px;line-height:1}
+
+.badge-off{color:var(--off)}.badge-def{color:var(--def)}
+.sev-Critical{color:#ff6b78;font-weight:700}.sev-High{color:#f0a12e;font-weight:700}.sev-Medium{color:#f0d02e}.sev-Low{color:#7ee0a6}
+.notice{background:rgba(240,161,46,.08);border:1px solid rgba(240,161,46,.3);border-radius:8px;padding:10px 13px;font-size:12px;color:#f6c173}
+.pill-count{background:var(--panel3);border:1px solid var(--border2);border-radius:20px;padding:1px 8px;font-size:11px;font-family:var(--mono);color:var(--text-dim)}
+hr.sep{border:none;border-top:1px solid var(--border);margin:14px 0}
+.checkitem{display:flex;gap:9px;align-items:flex-start;padding:5px 0;font-size:13px}
+.checkitem input{margin-top:3px}
+mark{background:rgba(240,161,46,.35);color:#fff;border-radius:3px;padding:0 2px}
+/* confidence badges */
+.conf{font-size:9.5px;padding:1px 6px;border-radius:4px;text-transform:uppercase;letter-spacing:.4px;margin-left:6px;border:1px solid;font-weight:700;white-space:nowrap}
+.conf.official{color:#7ee0a6;border-color:rgba(47,191,113,.5);background:rgba(47,191,113,.08)}
+.conf.validated{color:#8fb8f6;border-color:rgba(59,130,246,.5);background:rgba(59,130,246,.08)}
+.conf.curated{color:#f6c173;border-color:rgba(240,161,46,.5);background:rgba(240,161,46,.08)}
+.conf.inferred{color:#c9a6ea;border-color:rgba(160,107,216,.5);background:rgba(160,107,216,.08)}
+/* breadcrumb */
+#crumb{display:flex;align-items:center;gap:7px;padding:8px 24px;border-bottom:1px solid var(--border);font-size:12px;color:var(--text-dim);background:rgba(11,15,20,.4)}
+#crumb a{cursor:pointer;color:var(--text-dim)}#crumb a:hover{color:var(--cyan)}
+#crumb .sepc{color:var(--text-faint)}#crumb b{color:var(--text)}
+/* command palette */
+.cmdk-bg{position:fixed;inset:0;background:rgba(4,8,12,.6);z-index:160;display:flex;justify-content:center;align-items:flex-start;padding-top:12vh}
+.cmdk{background:var(--panel);border:1px solid var(--border2);border-radius:14px;width:min(640px,92vw);box-shadow:0 24px 60px rgba(0,0,0,.6);overflow:hidden}
+.cmdk input{width:100%;background:transparent;border:none;border-bottom:1px solid var(--border);color:var(--text);padding:16px 18px;font-size:15px;outline:none}
+.cmdk-list{max-height:52vh;overflow-y:auto}
+.cmdk-item{padding:10px 18px;display:flex;align-items:center;gap:10px;cursor:pointer;border-bottom:1px solid var(--border)}
+.cmdk-item.on,.cmdk-item:hover{background:var(--panel3)}
+.cmdk-foot{padding:8px 18px;font-size:11px;color:var(--text-faint);display:flex;gap:14px;border-top:1px solid var(--border)}
+kbd{background:var(--panel3);border:1px solid var(--border2);border-radius:4px;padding:1px 6px;font-family:var(--mono);font-size:11px}
+/* courses */
+.course-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(260px,1fr));gap:14px}
+.course-card{background:var(--panel2);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:.14s;position:relative}
+.course-card:hover{border-color:var(--border2);transform:translateY(-2px)}
+.course-card .lvl{font-size:10px;text-transform:uppercase;letter-spacing:.6px;padding:2px 8px;border-radius:5px;background:var(--panel3);border:1px solid var(--border2);color:var(--text-dim)}
+.progbar{height:6px;border-radius:4px;background:var(--panel3);overflow:hidden;margin-top:10px}
+.progbar>i{display:block;height:100%;background:linear-gradient(90deg,var(--cyan),var(--blue))}
+.lesson{border:1px solid var(--border);border-radius:9px;padding:14px;margin:10px 0;background:var(--panel2)}
+.lesson.done{border-color:rgba(47,191,113,.4)}
+.lesson h4{margin:0 0 4px}
+/* coverage bars */
+.cov-row{display:grid;grid-template-columns:200px 1fr 54px;gap:12px;align-items:center;margin:7px 0;font-size:12.5px}
+.cov-bar{height:16px;border-radius:5px;background:var(--panel3);overflow:hidden;border:1px solid var(--border)}
+.cov-bar>i{display:block;height:100%}
+.cov-bar>i.g{background:var(--green)}.cov-bar>i.a{background:var(--amber)}.cov-bar>i.r{background:var(--red)}.cov-bar>i.b{background:var(--blue)}
+.detgrid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:12px}
+.telbox{background:var(--panel2);border:1px solid var(--border);border-radius:9px;padding:12px}
+.telbox .th{font-size:11px;letter-spacing:.6px;text-transform:uppercase;color:var(--cyan);margin-bottom:6px}
+pre.sigma{background:#0a0f16;border:1px solid var(--border);border-radius:8px;padding:11px;font-family:var(--mono);font-size:11.5px;overflow-x:auto;color:#bcd;white-space:pre}
+.integrity-ok{color:var(--green)}.integrity-warn{color:var(--amber)}
+.netdot{width:9px;height:9px;border-radius:50%;display:inline-block;flex-shrink:0;margin-right:2px;box-shadow:0 0 0 3px transparent}
+.netdot.chk{background:var(--text-faint);animation:pulse 1.1s infinite}
+.netdot.on{background:var(--green);box-shadow:0 0 6px rgba(47,191,113,.7)}
+.netdot.off{background:var(--red)}
+@keyframes pulse{50%{opacity:.35}}
+.upd-src{display:grid;grid-template-columns:1fr auto;gap:8px;align-items:center;padding:8px 11px;border:1px solid var(--border);border-radius:8px;margin:6px 0;background:var(--panel2)}
+#updMsg{min-height:18px;font-size:12.5px;margin:8px 0}
+.drop{border:1.5px dashed var(--border2);border-radius:10px;padding:18px;text-align:center;color:var(--text-dim);cursor:pointer}
+.drop:hover{border-color:var(--cyan)}
+/* light theme */
+html[data-theme="light"]{--bg:#eef2f6;--bg2:#e6ecf2;--panel:#ffffff;--panel2:#f6f9fc;--panel3:#eef3f8;--border:#d2dce6;--border2:#b4c4d4;
+  --text:#16222e;--text-dim:#44586b;--text-faint:#75899c;--cyan:#0b8f98;--blue:#2563eb;--blue2:#1d4ed8;}
+html[data-theme="light"] body{background-image:linear-gradient(rgba(11,143,152,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(11,143,152,.04) 1px,transparent 1px)}
+html[data-theme="light"] pre.sigma{background:#f3f6f9;color:#243}
+@media print{#sidebar,#topbar,#burger,#crumb,.noprint{display:none!important}#main{padding:0}body{background:#fff;color:#000}}
+@media(max-width:720px){#sidebar{position:fixed;left:0;box-shadow:0 0 40px rgba(0,0,0,.6)}#sidebar.collapsed{width:0;border:none}.kv{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div id="app">
+  <aside id="sidebar">
+    <div class="brand">
+      <div class="logo"><svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="#04121a" stroke-width="1.5" stroke-linecap="round"><line x1="12" y1="5" x2="5" y2="17"/><line x1="12" y1="5" x2="19" y2="17"/><line x1="5" y1="17" x2="19" y2="17"/><line x1="12" y1="5" x2="12" y2="12.5"/><line x1="5" y1="17" x2="12" y2="12.5"/><line x1="19" y1="17" x2="12" y2="12.5"/><circle cx="12" cy="5" r="2.2" fill="#04121a" stroke="none"/><circle cx="5" cy="17" r="2.2" fill="#04121a" stroke="none"/><circle cx="19" cy="17" r="2.2" fill="#04121a" stroke="none"/><circle cx="12" cy="12.5" r="1.6" fill="#04121a" stroke="none"/></svg></div>
+      <div class="bt">TTP NEXUS<small>Connect · Decode · Defend</small></div>
+    </div>
+    <nav id="nav"></nav>
+  </aside>
+  <div id="content">
+    <div id="topbar">
+      <button id="burger" title="Toggle sidebar">☰</button>
+      <div class="topsearch">
+        <span class="si">🔎</span>
+        <input id="gsearch" placeholder="Search by ID or keyword — T1059, CAPEC-66, CWE-89, 'credential', 'phishing'…" autocomplete="off">
+        <button class="sx" id="gsx">×</button>
+        <div class="sugg" id="sugg" style="display:none"></div>
+      </div>
+      <span id="netdot" class="netdot chk" title="Connectivity: checking…"></span>
+      <button class="btn sm noprint" id="modeBtn"></button>
+      <button class="btn sm noprint" id="cmdkBtn" title="Command palette (Ctrl/⌘ K)">⌘K</button>
+      <button class="btn sm noprint" id="themeBtn" title="Toggle theme">◐</button>
+      <button class="btn sm noprint" onclick="go('export')">⬇ Export</button>
+    </div>
+    <div id="crumb"></div>
+    <div id="main"></div>
+  </div>
+</div>
+<div id="toast"></div>
+<div id="modalRoot"></div>
+
+<script>
+const KB = /*__KB_DATA__*/;
+</script>
+<script>
+/* ============================ CORE ============================ */
+const $=(s,r=document)=>r.querySelector(s); const $$=(s,r=document)=>[...r.querySelectorAll(s)];
+const esc=s=>(s==null?'':String(s)).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const uniq=a=>[...new Set(a)];
+function toast(m){const t=document.createElement('div');t.className='tmsg';t.textContent=m;$('#toast').appendChild(t);setTimeout(()=>t.remove(),2600);}
+function store(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem('ttp_'+k)||'null');localStorage.setItem('ttp_'+k,JSON.stringify(v));}catch(e){return null;}}
+function download(name,text,mime){const b=new Blob([text],{type:mime||'text/plain'});const u=URL.createObjectURL(b);const a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),1500);}
+
+/* ---- indices + correlation engine ---- */
+const IDX={byId:{},search:[]};
+const tacticName=id=>{for(const t of KB.attack.tactics)if(t.id===id)return t.name;for(const t of KB.ics.tactics)if(t.id===id)return t.name;for(const t of KB.mobile.tactics)if(t.id===id)return t.name;return id;};
+function register(type,fw,id,name,text){IDX.byId[id]={type,fw,id,name};IDX.search.push({type,fw,id,name,text:(name+' '+id+' '+(text||'')).toLowerCase()});}
+function buildIndex(){
+  IDX.byId={};IDX.search=[];
+  KB.attack.techniques.forEach(t=>{register('technique','attack',t.id,t.name,t.summary+' '+(t.platforms||[]).join(' ')+' '+t.tactics.map(tacticName).join(' '));
+    (t.subs||[]).forEach(s=>register('subtechnique','attack',s.id,s.name,s.summary+' parent '+t.id));});
+  KB.ics.techniques.forEach(t=>register('technique','ics',t.id,t.name,t.summary));
+  KB.mobile.techniques.forEach(t=>register('technique','mobile',t.id,t.name,t.summary));
+  KB.d3fend.techniques.forEach(d=>register('countermeasure','d3fend',d.id,d.name,d.definition));
+  KB.capec.forEach(c=>register('pattern','capec',c.id,c.name,c.summary));
+  KB.cwe.forEach(c=>register('weakness','cwe',c.id,c.name,c.summary));
+  KB.cve.forEach(c=>register('vulnerability','cve',c.id,c.desc,c.products.join(' ')));
+  KB.killchain.forEach(k=>register('killchain','killchain',k.id,k.name,k.summary));
+  KB.ptes.forEach(p=>register('phase','ptes',p.id,p.name,p.summary));
+  KB.wstg.forEach(w=>register('wstg','wstg',w.id,w.name,w.summary+' '+w.tests.join(' ')));
+  KB.owasp_top10.forEach(o=>register('owasp','owasp',o.id,o.name,o.summary));
+}
+// reverse maps
+const REV={attack2capec:{},attack2cwe:{},attack2d3:{},cwe2cve:{},cwe2capec:{},capecById:{},cweById:{},techById:{},subById:{},subParent:{},d3ById:{},killById:{}};
+function buildRev(){
+  Object.keys(REV).forEach(k=>REV[k]={});
+  KB.capec.forEach(c=>{REV.capecById[c.id]=c;(c.attack||[]).forEach(a=>{(REV.attack2capec[a]=REV.attack2capec[a]||[]).push(c.id);});(c.cwe||[]).forEach(w=>{(REV.cwe2capec[w]=REV.cwe2capec[w]||[]).push(c.id);});});
+  KB.cwe.forEach(w=>{REV.cweById[w.id]=w;(w.attack||[]).forEach(a=>{(REV.attack2cwe[a]=REV.attack2cwe[a]||[]).push(w.id);});});
+  KB.cve.forEach(v=>{(v.cwe||[]).forEach(w=>{(REV.cwe2cve[w]=REV.cwe2cve[w]||[]).push(v.id);});});
+  KB.d3fend.techniques.forEach(d=>{REV.d3ById[d.id]=d;(d.counters||[]).forEach(a=>{(REV.attack2d3[a]=REV.attack2d3[a]||[]).push(d.id);});});
+  KB.attack.techniques.forEach(t=>{REV.techById[t.id]=t;(t.subs||[]).forEach(s=>{REV.subById[s.id]=s;REV.subParent[s.id]=t.id;});});
+  KB.killchain.forEach(k=>{REV.killById[k.id]=k;});
+}
+function recomputeCounts(){const t=KB.attack.techniques;Object.assign(C,{attack_techniques:t.length,attack_subtechniques:t.reduce((a,x)=>a+((x.subs||[]).length),0),ics_techniques:KB.ics.techniques.length,mobile_techniques:KB.mobile.techniques.length,d3fend:KB.d3fend.techniques.length,capec:KB.capec.length,cwe:KB.cwe.length,cve:KB.cve.length});KB.meta.counts=C;}
+function rebuildAll(){buildIndex();buildRev();recomputeCounts();}
+const kcForTech=t=>(t.killchain||[]).map(id=>REV.killById[id]).filter(Boolean);
+const ptesForTech=id=>KB.ptes.filter(p=>(p.attack||[]).includes(id));
+const wstgForCwe=cwes=>{const names={'CWE-89':'WSTG-INPV','CWE-79':'WSTG-INPV','CWE-78':'WSTG-INPV','CWE-287':'WSTG-ATHN','CWE-306':'WSTG-ATHN','CWE-862':'WSTG-ATHZ','CWE-22':'WSTG-ATHZ','CWE-384':'WSTG-SESS','CWE-352':'WSTG-SESS','CWE-522':'WSTG-CRYP','CWE-307':'WSTG-ATHN'};return uniq(cwes.map(c=>names[c]).filter(Boolean)).map(id=>KB.wstg.find(w=>w.id===id)).filter(Boolean);};
+
+/* ============================ ROUTER ============================ */
+const NAV=[
+ {sec:'Overview'},
+ {id:'dashboard',ic:'◉',label:'Dashboard'},
+ {sec:'Frameworks'},
+ {id:'attack',ic:'⚔',label:'ATT&CK Explorer'},
+ {id:'d3fend',ic:'🛡',label:'D3FEND Explorer'},
+ {id:'capec',ic:'❂',label:'CAPEC Explorer'},
+ {id:'killchain',ic:'⛓',label:'Cyber Kill Chain'},
+ {id:'cwecve',ic:'⚠',label:'CWE / CVE Explorer'},
+ {id:'methodology',ic:'❑',label:'Pentest Methodologies'},
+ {sec:'Analysis'},
+ {id:'mapping',ic:'⇄',label:'Attack-Defence Mapping'},
+ {id:'matrix',ic:'▦',label:'Navigator Matrix'},
+ {id:'graph',ic:'❋',label:'Knowledge Graph'},
+ {id:'scenario',ic:'◎',label:'Scenario Builder'},
+ {id:'validate',ic:'✔',label:'Integrity & Coverage'},
+ {sec:'Learn & Manage'},
+ {id:'paths',ic:'🎓',label:'Learning Paths'},
+ {id:'study',ic:'✦',label:'Study Mode'},
+ {id:'collections',ic:'❏',label:'Collections'},
+ {id:'export',ic:'⬇',label:'Export Center'},
+ {id:'settings',ic:'⚙',label:'Settings'},
+];
+function renderNav(){
+  $('#nav').innerHTML=NAV.map(n=>n.sec?`<div class="nav-sec">${n.sec}</div>`:
+   `<div class="nav-item" data-id="${n.id}" onclick="go('${n.id}')"><span class="ic">${n.ic}</span><span class="nav-label">${n.label}</span></div>`).join('');
+}
+let CURRENT='dashboard';
+function navLabel(id){const n=NAV.find(x=>x.id===id);return n?n.label:id;}
+function setCrumb(id){const c=$('#crumb');if(!c)return;c.innerHTML=`<a onclick="go('dashboard')">Home</a><span class="sepc">›</span><b>${esc(navLabel(id))}</b>`;}
+function crumbItem(id,name){const c=$('#crumb');if(!c||!id)return;c.innerHTML+=`<span class="sepc">›</span><span class="mono" style="color:var(--cyan)">${esc(id)}</span>${name?` <span>${esc(String(name).slice(0,42))}</span>`:''}`;}
+const CONF={official:{cls:'official',t:'Official'},validated:{cls:'validated',t:'Validated'},curated:{cls:'curated',t:'Curated'},inferred:{cls:'inferred',t:'Inferred'}};
+function confBadge(kind){const c=CONF[kind]||CONF.curated;return `<span class="conf ${c.cls}" title="Relationship confidence: ${c.t}">${c.t}</span>`;}
+function go(id,arg){CURRENT=id;location.hash=id+(arg?'/'+arg:'');$$('.nav-item').forEach(e=>e.classList.toggle('active',e.dataset.id===id));
+  const v=VIEWS[id];$('#main').innerHTML='';setCrumb(id);if(v)v(arg);window.scrollTo(0,0);if(window.innerWidth<=720)$('#sidebar').classList.add('collapsed');}
+function openId(id){const o=IDX.byId[id];if(!o){toast('Not found: '+id);return;}
+  const map={technique:'attack',subtechnique:'attack',countermeasure:'d3fend',pattern:'capec',weakness:'cwecve',vulnerability:'cwecve',killchain:'killchain',phase:'methodology',wstg:'methodology',owasp:'methodology'};
+  if(o.type==='subtechnique'){const pid=REV.subParent[id]||id;ATKfilters.fw='attack';go('attack',pid);toast('Opened parent '+pid+' (contains '+id+')');return;}
+  if(o.fw==='ics'||o.fw==='mobile'){ATKfilters.fw=o.fw;go('attack',id);return;}
+  go(map[o.type]||'dashboard',id);}
+
+/* ============================ UNIVERSAL SEARCH ============================ */
+function runSearch(q){q=q.trim();if(!q)return[];const ql=q.toLowerCase();
+  // boolean AND terms
+  const terms=ql.split(/\s+/).filter(Boolean);
+  let res=IDX.search.map(o=>{let score=0;
+    if(o.id.toLowerCase()===ql)score+=100;
+    if(o.id.toLowerCase().startsWith(ql))score+=40;
+    if(o.name.toLowerCase().includes(ql))score+=20;
+    let all=terms.every(t=>o.text.includes(t));if(all)score+=10;
+    terms.forEach(t=>{if(o.text.includes(t))score+=2;});
+    // fuzzy: id without punctuation
+    if(o.id.toLowerCase().replace(/[-.]/g,'').includes(ql.replace(/[-.]/g,'')))score+=15;
+    return{o,score};}).filter(x=>x.score>0).sort((a,b)=>b.score-a.score);
+  return res.slice(0,40).map(x=>x.o);}
+function highlight(txt,q){if(!q)return esc(txt);const terms=q.toLowerCase().split(/\s+/).filter(t=>t.length>1);let out=esc(txt);
+  terms.forEach(t=>{const re=new RegExp('('+t.replace(/[.*+?^${}()|[\]\\]/g,'\\$&')+')','ig');out=out.replace(re,'<mark>$1</mark>');});return out;}
+function addHistory(q){let h=store('history')||[];h=[q,...h.filter(x=>x!==q)].slice(0,12);store('history',h);}
+function wireSearch(){
+  const inp=$('#gsearch'),sg=$('#sugg'),sx=$('#gsx');
+  inp.addEventListener('input',()=>{const q=inp.value;sx.style.display=q?'block':'none';
+    if(!q){sg.style.display='none';return;}
+    const r=runSearch(q);if(!r.length){sg.innerHTML='<div class="sg-item muted">No matches</div>';sg.style.display='block';return;}
+    sg.innerHTML=r.slice(0,12).map(o=>`<div class="sg-item" onclick="pickSearch('${o.id}')"><span class="tag ${o.fw}">${o.fw.toUpperCase()}</span>
+      <span class="mono" style="color:var(--cyan);font-size:12px">${esc(o.id)}</span><span>${highlight(o.name,q)}</span></div>`).join('');
+    sg.style.display='block';});
+  inp.addEventListener('keydown',e=>{if(e.key==='Enter'){const q=inp.value.trim();if(q){addHistory(q);const r=runSearch(q);if(r.length===1){pickSearch(r[0].id);}else{go('searchresults',encodeURIComponent(q));}sg.style.display='none';}}});
+  sx.onclick=()=>{inp.value='';sx.style.display='none';sg.style.display='none';};
+  document.addEventListener('click',e=>{if(!e.target.closest('.topsearch'))sg.style.display='none';});
+}
+function pickSearch(id){$('#sugg').style.display='none';$('#gsearch').value='';$('#gsx').style.display='none';addRecentView(id);openId(id);}
+
+/* recent views */
+function addRecentView(id){let r=store('recent')||[];r=[id,...r.filter(x=>x!==id)].slice(0,10);store('recent',r);}
+
+/* ============================ VIEWS ============================ */
+const VIEWS={};
+const C=KB.meta.counts;
+
+/* -------- DASHBOARD -------- */
+VIEWS.dashboard=function(){
+  const recent=(store('recent')||[]).map(id=>IDX.byId[id]).filter(Boolean);
+  const hist=store('history')||[];
+  const cols=store('collections')||[];
+  $('#main').innerHTML=`
+   <h1 class="view-title" style="font-size:26px;letter-spacing:1px">TTP <span style="color:var(--cyan)">NEXUS</span></h1>
+   <p class="view-sub" style="letter-spacing:1.5px;text-transform:uppercase;font-size:11.5px;color:var(--text-dim)">Connecting Tactics. Decoding Threats. Enabling Defence.</p>
+   <p class="view-sub" style="margin-top:-8px">Unified ATT&CK · D3FEND · CAPEC · CWE/CVE · Kill Chain · Methodology intelligence — fully offline.</p>
+   <div class="notice" style="margin-bottom:16px">${datasetIsLive()?`✔ <b>Live dataset loaded</b> — full official ATT&CK catalog fetched from MITRE (descriptions &amp; references are official). ${esc(KB.meta.attack_version)}.`:`⚠ <b>Embedded curated dataset</b> — paraphrased summaries (a partial subset), mappings carry source + confidence and are never invented. Switch to <b>Online</b> (top bar) to load the full official catalog with full write-ups &amp; references. Dataset: ${esc(KB.meta.attack_version)} · built ${esc(KB.meta.built)}.`}</div>
+   <div class="stat-grid" style="margin-bottom:18px">
+     <div class="stat off"><div class="n">${C.attack_techniques}</div><div class="l">ATT&CK Techniques</div></div>
+     <div class="stat off"><div class="n">${C.attack_subtechniques}</div><div class="l">Sub-techniques</div></div>
+     <div class="stat def"><div class="n">${C.d3fend}</div><div class="l">D3FEND Countermeasures</div></div>
+     <div class="stat b"><div class="n">${C.capec}</div><div class="l">CAPEC Patterns</div></div>
+     <div class="stat"><div class="n">${C.cwe}</div><div class="l">CWE Weaknesses</div></div>
+     <div class="stat off"><div class="n">${C.cve}</div><div class="l">Landmark CVEs</div></div>
+     <div class="stat"><div class="n">${C.ics_techniques}</div><div class="l">ICS Techniques</div></div>
+     <div class="stat"><div class="n">${C.mobile_techniques}</div><div class="l">Mobile Techniques</div></div>
+   </div>
+   <div class="panel">
+     <div class="sectitle" style="margin-top:0">Kill Chain — click a stage to explore</div>
+     <div class="kc-strip" id="kcDash"></div>
+   </div>
+   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(260px,1fr));margin-top:16px">
+     <div class="panel"><div class="sectitle" style="margin-top:0">Explore Frameworks</div>
+       <div class="card-grid">
+         <div class="fcard" onclick="go('attack')"><h4 class="badge-off">⚔ ATT&CK</h4><p>Enterprise, ICS & Mobile techniques</p><div class="cnt">${C.attack_techniques+C.ics_techniques+C.mobile_techniques} techniques</div></div>
+         <div class="fcard" onclick="go('d3fend')"><h4 class="badge-def">🛡 D3FEND</h4><p>Defensive countermeasures</p><div class="cnt">${C.d3fend} measures</div></div>
+         <div class="fcard" onclick="go('capec')"><h4>❂ CAPEC</h4><p>Attack patterns</p><div class="cnt">${C.capec} patterns</div></div>
+         <div class="fcard" onclick="go('cwecve')"><h4>⚠ CWE / CVE</h4><p>Weaknesses & vulnerabilities</p><div class="cnt">${C.cwe+C.cve} records</div></div>
+         <div class="fcard" onclick="go('mapping')"><h4>⇄ Attack-Defence</h4><p>Correlate offence & defence</p><div class="cnt">studio</div></div>
+         <div class="fcard" onclick="go('methodology')"><h4>❑ Methodology</h4><p>PTES · WSTG · NIST</p><div class="cnt">learning hub</div></div>
+         <div class="fcard" onclick="go('paths')"><h4>🎓 Learning Paths</h4><p>Guided courses with progress</p><div class="cnt">${C.courses} courses</div></div>
+         <div class="fcard" onclick="go('validate')"><h4>✔ Integrity & Coverage</h4><p>Validation & detection gaps</p><div class="cnt">${C.detection_profiles} detection profiles</div></div>
+       </div>
+     </div>
+     <div class="panel"><div class="sectitle" style="margin-top:0">Recently Viewed</div>
+       ${recent.length?recent.map(o=>`<div class="rel" onclick="openId('${o.id}')"><span class="tag ${o.fw}">${o.fw.toUpperCase()}</span> ${esc(o.id)} · ${esc(o.name).slice(0,34)}</div>`).join(''):'<p class="faint">Nothing yet — search or open a technique.</p>'}
+       <div class="sectitle">Recent Searches</div>
+       ${hist.length?hist.map(h=>`<span class="chip" onclick="$('#gsearch').value='${esc(h)}';go('searchresults','${encodeURIComponent(h)}')">${esc(h)}</span>`).join(''):'<p class="faint">No searches yet.</p>'}
+       <div class="sectitle">Collections</div>
+       ${cols.length?cols.map((c,i)=>`<div class="rel" onclick="go('collections')">❏ ${esc(c.name)} <span class="pill-count">${c.items.length}</span></div>`).join(''):'<p class="faint">No collections. <a onclick="go(\'collections\')">Create one →</a></p>'}
+     </div>
+   </div>`;
+  const strip=$('#kcDash');
+  strip.innerHTML=KB.killchain.map((k,i)=>`<div class="kc-stage" onclick="go('killchain','${k.id}')">
+     <div class="num">STAGE ${k.n}</div><div class="kn">${esc(k.name)}</div>
+     <div class="faint" style="font-size:11px">${k.attack.length} ATT&CK</div>
+     ${i<KB.killchain.length-1?'<span class="arrow">▶</span>':''}</div>`).join('');
+};
+
+/* -------- SEARCH RESULTS -------- */
+VIEWS.searchresults=function(q){q=decodeURIComponent(q||'');const r=runSearch(q);
+  $('#main').innerHTML=`<h1 class="view-title">Search: "${esc(q)}"</h1><p class="view-sub">${r.length} results across all frameworks</p>
+   <div class="panel">${r.length?r.map(o=>`<div class="li" onclick="pickSearch('${o.id}')">
+     <div><span class="tag ${o.fw}">${o.fw.toUpperCase()}</span> <span class="id">${esc(o.id)}</span></div>
+     <div class="nm">${highlight(o.name,q)}</div></div>`).join(''):'<p class="muted">No matches. Try a different term or ID.</p>'}</div>`;
+};
+
+/* -------- ATT&CK EXPLORER -------- */
+let ATKfilters={fw:'attack',tactic:'',platform:'',has:'',q:''};
+VIEWS.attack=function(arg){
+  const allPlat=uniq(KB.attack.techniques.flatMap(t=>t.platforms)).sort();
+  $('#main').innerHTML=`
+   <h1 class="view-title">ATT&CK Explorer</h1>
+   <p class="view-sub">Enterprise, ICS & Mobile techniques with cross-framework correlation.</p>
+   <div class="panel" style="margin-bottom:14px">
+     <div class="row">
+       <select class="field" id="afw" onchange="ATKfilters.fw=this.value;ATKfilters.tactic='';renderAtk()">
+         <option value="attack">Enterprise (${C.attack_techniques})</option>
+         <option value="ics">ICS (${C.ics_techniques})</option>
+         <option value="mobile">Mobile (${C.mobile_techniques})</option>
+       </select>
+       <select class="field" id="atac" onchange="ATKfilters.tactic=this.value;renderAtk()"><option value="">All tactics</option></select>
+       <select class="field" id="aplat" onchange="ATKfilters.platform=this.value;renderAtk()"><option value="">All platforms</option>${allPlat.map(p=>`<option>${p}</option>`).join('')}</select>
+       <select class="field" id="ahas" onchange="ATKfilters.has=this.value;renderAtk()">
+         <option value="">Any relationship</option><option value="capec">Has CAPEC</option><option value="d3fend">Has D3FEND</option><option value="cwe">Has CWE</option><option value="mit">Has Mitigation</option></select>
+       <input class="field" id="aq" placeholder="Filter…" style="flex:1;min-width:120px" oninput="ATKfilters.q=this.value;renderAtk()">
+       <span class="pill-count" id="acount"></span>
+     </div>
+   </div>
+   <div class="split"><div class="panel list" id="atkList"></div><div id="atkDetail"></div></div>`;
+  // tactic dropdown by fw
+  const tacs=KB[ATKfilters.fw].tactics;
+  $('#atac').innerHTML='<option value="">All tactics</option>'+tacs.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('');
+  renderAtk(arg);
+};
+function atkData(){return KB[ATKfilters.fw].techniques;}
+function renderAtk(selId){
+  const f=ATKfilters;let list=atkData();
+  if(f.tactic)list=list.filter(t=>t.tactics.includes(f.tactic));
+  if(f.platform)list=list.filter(t=>(t.platforms||[]).includes(f.platform));
+  if(f.has==='capec')list=list.filter(t=>(REV.attack2capec[t.id]||t.capec||[]).length);
+  if(f.has==='d3fend')list=list.filter(t=>(REV.attack2d3[t.id]||[]).length);
+  if(f.has==='cwe')list=list.filter(t=>(REV.attack2cwe[t.id]||t.cwe||[]).length);
+  if(f.has==='mit')list=list.filter(t=>(t.mitigations||[]).length);
+  if(f.q){const q=f.q.toLowerCase();list=list.filter(t=>(t.id+t.name+t.summary).toLowerCase().includes(q)||t.subs&&t.subs.some(s=>(s.id+s.name).toLowerCase().includes(q)));}
+  $('#acount')&&($('#acount').textContent=list.length+' techniques');
+  $('#atkList').innerHTML=list.length?list.map(t=>`<div class="li off" data-id="${t.id}" onclick="selAtk('${t.id}')">
+     <div class="id">${esc(t.id)}${t.subs&&t.subs.length?` <span class="faint">+${t.subs.length} sub</span>`:''}</div>
+     <div class="nm">${esc(t.name)}</div><div class="ds">${esc(t.summary)}</div>
+     <div style="margin-top:5px">${t.tactics.map(tc=>`<span class="chip">${esc(tacticName(tc))}</span>`).join('')}</div></div>`).join(''):'<p class="muted">No techniques match.</p>';
+  if(selId){selAtk(selId);}else if(list.length){selAtk(list[0].id);}
+}
+let atkTab='overview';
+function selAtk(id){atkTab='overview';$$('#atkList .li').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));addRecentView(id);renderAtkDetail(id);}
+const TOOLS_BY_TACTIC={TA0043:'OSINT & scanning frameworks',TA0042:'Infrastructure & payload staging tooling',TA0001:'Phishing frameworks, exploit toolkits, valid-credential access',TA0002:'Script interpreters & command-execution frameworks',TA0003:'Persistence utilities (services, scheduled tasks, autostart)',TA0004:'Privilege-escalation exploits & token-manipulation utilities',TA0005:'Obfuscation, packing & log-tampering utilities',TA0006:'Credential-dumping & brute-force tooling',TA0007:'Native OS discovery / enumeration utilities',TA0008:'Remote-execution clients (SMB / WinRM / RDP / SSH)',TA0009:'Collection & archiving utilities',TA0011:'C2 frameworks & tunnelling utilities',TA0010:'Exfiltration & transfer utilities',TA0040:'Ransomware / wiper / DoS tooling',TA0108:'OT access & engineering-workstation tooling',TA0106:'ICS protocol manipulation utilities',TA0105:'OT disruption tooling'};
+const atkUrl=id=>'https://attack.mitre.org/techniques/'+String(id).replace('.','/');
+function detFor(id){ if(KB.detection.techniques[id]) return KB.detection.techniques[id];
+  const t=REV.techById[id]||REV.subById[id]||KB.ics.techniques.find(x=>x.id===id)||KB.mobile.techniques.find(x=>x.id===id); if(!t) return null;
+  const plat=t.platforms||[];const isWin=plat.some(p=>/Windows|Office|Azure/.test(p));const isLin=plat.some(p=>/Linux|Containers/.test(p));
+  return {conf:'Curated',generic:true,
+    hypotheses:['Observe the behaviour described in the technique summary in your telemetry and compare against a baseline of normal activity.'],
+    windows:isWin?['Process creation auditing — Security 4688 / Sysmon EID 1 (with full command line)','Authentication events 4624 / 4625 where the technique touches logon']:[],
+    sysmon:isWin?['Sysmon EID 1 (process), 3 (network), 11 (file create) as relevant to the behaviour']:[],
+    linux:isLin?['auditd execve / connect syscalls','/var/log/auth.log for authentication and sudo']:[],
+    network:['NetFlow / Zeek and web-proxy logs for related egress or lateral flows'],
+    logic:null,fp:['Baseline legitimate administrative use before alerting.'],
+    investigation:['Correlate with adjacent tactics on the same host and time window.','Establish the process lineage and responsible account.']};
+}
+function renderAtkDetail(id){
+  const fw=ATKfilters.fw;const t=KB[fw].techniques.find(x=>x.id===id);if(!t){$('#atkDetail').innerHTML='';return;}
+  setCrumb('attack');crumbItem(t.id,t.name);
+  const capO=REV.attack2capec[id]||[];const capC=(t.capec||[]).filter(x=>!capO.includes(x));
+  const cwe=(t.cwe||REV.attack2cwe[id]||[]);const d3=(REV.attack2d3[id]||[]);
+  const kcs=kcForTech(t);const ptes=ptesForTech(id);const wstg=wstgForCwe(cwe);
+  const det=detFor(id);const relCount=capO.length+capC.length+cwe.length+d3.length+kcs.length;
+  const tabs=[['overview','Overview'],['method','Adversary Methodology'],['exec','Execution (Lab)'],['tools','Tools'],['detection','Detection Eng.'],['harden','Mitigation & Hardening'],['rel','Relationships'],['labs','Labs'],['refs','References']];
+  const telBox=(title,arr)=>arr&&arr.length?`<div class="telbox"><div class="th">${title}</div>${arr.map(x=>`<div class="faint" style="font-size:12px;margin:2px 0">• ${esc(x)}</div>`).join('')}</div>`:'';
+  const scopeBanner='<div class="notice">Authorized use only — reproduce behaviours exclusively in an isolated, explicitly scoped lab. No weaponized commands are provided; this is conceptual methodology for detection and defensive validation.</div>';
+  const body=()=>{ switch(atkTab){
+    case 'overview': return `
+      <div class="kv"><div class="k">ID</div><div class="mono" style="color:var(--cyan)">${esc(t.id)}</div></div>
+      <div class="kv"><div class="k">Tactics</div><div>${t.tactics.map(tc=>`<span class="chip on">${esc(tacticName(tc))}</span>`).join('')}</div></div>
+      <div class="kv"><div class="k">Platforms</div><div>${(t.platforms||[]).map(p=>`<span class="chip">${esc(p)}</span>`).join('')||'<span class="faint">—</span>'}</div></div>
+      <div class="kv"><div class="k">Sub-techniques</div><div>${t.subs&&t.subs.length?t.subs.length:'0'}</div></div>
+      <div class="kv"><div class="k">Relationships</div><div><span class="pill-count">${relCount} linked objects</span></div></div>
+      <div class="sectitle">${t.official?`Description ${confBadge('official')} <span class="faint" style="font-weight:400">· fetched live from MITRE</span>`:'Summary'}</div><p>${esc(t.desc||t.summary)}</p>
+      <div class="sectitle">Kill Chain Mapping</div>${kcs.length?kcs.map(k=>`<span class="rel" onclick="go('killchain','${k.id}')">⛓ ${esc(k.name)}</span>${confBadge('curated')}`).join(' '):'<p class="faint">—</p>'}`;
+    case 'method': return `
+      <div class="notice" style="margin-top:0">Curated educational description — paraphrased, not official ATT&CK text.</div>
+      <div class="sectitle">Adversary Methodology</div>
+      <p>Adversaries use <b>${esc(t.name)}</b> to ${esc(t.summary.charAt(0).toLowerCase()+t.summary.slice(1))}</p>
+      <p class="muted">Within the <b>${esc(tacticName(t.tactics[0]))}</b> phase, this behaviour is typically chained with adjacent tactics — reconnaissance and access before it, and discovery, movement or impact after it — as part of a broader operation.</p>
+      ${t.subs&&t.subs.length?`<div class="sectitle">Behavioural Variants (sub-techniques)</div>${t.subs.map(s=>`<div class="li" style="cursor:default"><div class="id">${esc(s.id)}</div><div class="nm">${esc(s.name)}</div><div class="ds">${esc(s.summary)}</div></div>`).join('')}`:''}
+      <div class="sectitle">Related Techniques (shared tactic)</div>
+      ${KB[fw].techniques.filter(x=>x.id!==id&&x.tactics.some(tc=>t.tactics.includes(tc))).slice(0,8).map(x=>`<span class="rel" onclick="selAtk('${x.id}')">${esc(x.id)} ${esc(x.name).slice(0,24)}</span>`).join('')||'<span class="faint">—</span>'}`;
+    case 'exec': return `${scopeBanner}
+      <div class="sectitle">Execution in an Authorized Lab</div>
+      <ol class="clean">
+        <li>Stand up an isolated lab matching the target platform(s): ${(t.platforms||['n/a']).map(esc).join(', ')}. Snapshot before starting.</li>
+        <li>Enable the telemetry listed under <b>Detection Engineering</b> so the behaviour is observable.</li>
+        <li>Reproduce the behaviour conceptually — <i>${esc(t.name)}</i> — using only tooling you are authorized to run in scope.</li>
+        <li>Capture the artifacts and telemetry generated (process, file, network, auth events).</li>
+        <li>Validate detections against what you observed, document findings, then revert the lab.</li>
+      </ol>
+      <div class="sectitle">Expected Observable Effect</div><p class="muted">${esc(t.detection||'Behaviour-specific telemetry as described in the Detection Engineering tab.')}</p>`;
+    case 'tools': return `
+      <div class="notice" style="margin-top:0">Representative tooling <b>categories</b> for study — not an endorsement or operational guide. Specific product names are intentionally omitted.</div>
+      <div class="sectitle">Offensive Tooling Categories</div>
+      ${uniq(t.tactics.map(tc=>TOOLS_BY_TACTIC[tc]).filter(Boolean)).map(c=>`<div class="checkitem">⚔ <span>${esc(c)}</span></div>`).join('')||'<p class="faint">—</p>'}
+      <div class="sectitle">Defensive / Observation Tooling</div>
+      <div class="checkitem">🛡 <span>EDR, SIEM, Sysmon, osquery, Zeek — to observe, log and detect this behaviour</span></div>
+      ${fw==='ics'&&t.assets?`<div class="sectitle">ICS Assets Involved</div>${t.assets.map(a=>`<span class="chip">${esc(a)}</span>`).join('')}`:''}`;
+    case 'detection': return det?`
+      <div class="row"><div class="sectitle" style="margin-top:0">Detection Engineering</div><span class="sp"></span>${confBadge(det.conf==='Curated'?'curated':'validated')}</div>
+      <div class="sectitle" style="margin-top:4px">Detection Strategy</div><p>${esc(t.detection||'—')}</p>
+      <div class="sectitle">Detection Hypotheses</div><ul class="clean">${det.hypotheses.map(h=>`<li>${esc(h)}</li>`).join('')}</ul>
+      <div class="sectitle">Telemetry & Signals</div>
+      <div class="detgrid">${telBox('Windows Events',det.windows)}${telBox('Sysmon',det.sysmon)}${telBox('Linux',det.linux)}${telBox('Network',det.network)}</div>
+      ${det.logic?`<div class="sectitle">Illustrative Detection Logic <span class="conf curated">Curated</span></div><pre class="sigma">${esc(det.logic)}</pre><p class="faint" style="font-size:11px">Sigma-style pseudo-logic for learning — validate and tune before any production use.</p>`:''}
+      <div class="sectitle">False Positives</div><ul class="clean">${det.fp.map(f=>`<li>${esc(f)}</li>`).join('')}</ul>
+      <div class="sectitle">Investigation Steps</div><ol class="clean">${det.investigation.map(f=>`<li>${esc(f)}</li>`).join('')}</ol>
+      ${det.generic?'<p class="faint" style="font-size:11px">Generic guidance derived from available data sources — no specific detection profile is curated for this ID yet.</p>':''}`:'<p class="faint">No detection profile available.</p>';
+    case 'harden': return `
+      <div class="sectitle" style="margin-top:0">ATT&CK Mitigations</div>
+      ${(t.mitigations||[]).length?t.mitigations.map(m=>`<div class="checkitem">✅ <span>${esc(m)}</span></div>`).join(''):'<p class="faint">No mitigation references in this dataset.</p>'}
+      <div class="sectitle">D3FEND Countermeasures ${confBadge('official')}</div>
+      ${d3.length?d3.map(d=>{const o=REV.d3ById[d];return `<div class="li def" onclick="go('d3fend','${d}')"><div class="id">${esc(d)}</div><div class="nm">${esc(o.name)}</div><div class="ds">${esc(o.definition)}</div></div>`;}).join(''):'<p class="faint">No D3FEND mapping for this technique in the curated set.</p>'}
+      ${cwe.length?`<div class="sectitle">Weakness Prevention (via CWE)</div>${cwe.map(w=>{const o=REV.cweById[w];return o?`<div class="checkitem">🧩 <span><b>${esc(w)}</b> — ${esc(o.mitigations)}</span></div>`:'';}).join('')}`:''}`;
+    case 'rel': return `
+      <div class="sectitle" style="margin-top:0">Framework Relationships</div>
+      <div class="sectitle">CAPEC Attack Patterns</div>
+      ${capO.map(c=>{const o=REV.capecById[c];return `<div class="li" onclick="go('capec','${c}')"><div class="id">${esc(c)} ${confBadge('official')}</div><div class="nm">${esc(o?o.name:c)}</div></div>`;}).join('')}
+      ${capC.map(c=>{const o=REV.capecById[c];return `<div class="li" onclick="go('capec','${c}')"><div class="id">${esc(c)} ${confBadge('curated')}</div><div class="nm">${esc(o?o.name:c)}</div></div>`;}).join('')}
+      ${!capO.length&&!capC.length?'<p class="faint">—</p>':''}
+      <div class="sectitle">CWE Weaknesses ${confBadge('curated')}</div>
+      ${cwe.length?cwe.map(w=>{const o=REV.cweById[w];return `<span class="rel" onclick="go('cwecve','${w}')">⚠ ${esc(w)} ${o?esc(o.name).slice(0,26):''}</span>`;}).join(''):'<span class="faint">—</span>'}
+      <div class="sectitle">D3FEND Countermeasures ${confBadge('official')}</div>
+      ${d3.length?d3.map(d=>`<span class="rel" onclick="go('d3fend','${d}')">🛡 ${esc(d)}</span>`).join(''):'<span class="faint">—</span>'}
+      <div class="sectitle">Kill Chain ${confBadge('curated')}</div>${kcs.map(k=>`<span class="rel" onclick="go('killchain','${k.id}')">⛓ ${esc(k.name)}</span>`).join('')||'<span class="faint">—</span>'}
+      <div class="sectitle">PTES Phases ${confBadge('curated')}</div>${ptes.map(p=>`<span class="rel" onclick="go('methodology','${p.id}')">❑ ${esc(p.name)}</span>`).join('')||'<span class="faint">—</span>'}
+      <div class="sectitle">OWASP WSTG (via CWE) ${confBadge('inferred')}</div>${wstg.length?wstg.map(w=>`<span class="rel" onclick="go('methodology','${w.id}')">${esc(w.id)}</span>`).join(''):'<span class="faint">—</span>'}`;
+    case 'labs': {const lg=KB.detection.lab_generic;return `${scopeBanner}
+      <div class="sectitle">Lab Objective</div><p>Safely reproduce and detect <b>${esc(t.name)}</b> to validate telemetry and defensive controls.</p>
+      <div class="sectitle">Prerequisites</div>${lg.prereqs.map(p=>`<div class="checkitem"><input type="checkbox"> ${esc(p)}</div>`).join('')}
+      <div class="sectitle">Environment</div><p class="muted">Target platform(s): ${(t.platforms||['n/a']).map(esc).join(', ')}.</p>
+      <div class="sectitle">Expected Outcome</div><p class="muted">${esc(t.detection||'The behaviour-specific telemetry listed in Detection Engineering is produced and observable.')}</p>
+      <div class="sectitle">Validation Criteria</div>${lg.validation.map(p=>`<div class="checkitem"><input type="checkbox"> ${esc(p)}</div>`).join('')}
+      <div class="sectitle">Cleanup</div>${lg.cleanup.map(p=>`<div class="checkitem"><input type="checkbox"> ${esc(p)}</div>`).join('')}`;}
+    case 'refs': return `
+      ${t.references&&t.references.length?`<div class="sectitle" style="margin-top:0">Cited References ${confBadge('official')} <span class="faint" style="font-weight:400">· fetched live (${t.references.length})</span></div>
+        ${t.references.map(r=>`<div class="checkitem">🔗 <span><a href="${esc(r.url)}" target="_blank" rel="noopener">${esc(r.name||r.url)}</a>${r.id?` <span class="faint">(${esc(r.id)})</span>`:''}</span></div>`).join('')}`:''}
+      <div class="sectitle" ${t.references&&t.references.length?'':'style="margin-top:0"'}>Canonical Lookups ${confBadge('official')}</div>
+      <div class="checkitem">🔗 <span><a href="${atkUrl(t.id)}" target="_blank" rel="noopener">attack.mitre.org/techniques/${esc(String(t.id).replace('.','/'))}</a> <span class="faint">(opens online)</span></span></div>
+      ${capO.length?`<div class="checkitem">🔗 <span>CAPEC: ${capO.map(c=>`<a href="https://capec.mitre.org/data/definitions/${esc(c.replace('CAPEC-',''))}.html" target="_blank" rel="noopener">${esc(c)}</a>`).join(', ')}</span></div>`:''}
+      ${cwe.length?`<div class="checkitem">🔗 <span>CWE: ${cwe.map(w=>`<a href="https://cwe.mitre.org/data/definitions/${esc(w.replace('CWE-',''))}.html" target="_blank" rel="noopener">${esc(w)}</a>`).join(', ')}</span></div>`:''}
+      ${d3.length?`<div class="checkitem">🔗 <span><a href="https://d3fend.mitre.org/" target="_blank" rel="noopener">d3fend.mitre.org</a> — ${d3.map(esc).join(', ')}</span></div>`:''}
+      <div class="checkitem">🔗 <span><a href="https://nvd.nist.gov/" target="_blank" rel="noopener">nvd.nist.gov</a> — vulnerability references</span></div>
+      <p class="faint" style="font-size:11px;margin-top:10px">Links are provided for authoritative lookup and require internet access; the portal itself remains fully offline.</p>`;
+  }};
+  $('#atkDetail').innerHTML=`<div class="panel detail">
+     <button class="btn sm" style="float:right" onclick="addToCollectionPrompt('${t.id}')">+ Collection</button>
+     <div class="row" style="gap:8px"><span class="tag ${fw}">${fw.toUpperCase()}</span><h2 style="margin:0;font-size:18px">${esc(t.name)}</h2></div>
+     <div class="mono faint" style="font-size:12px">${esc(t.id)}</div>
+     <div class="tabs">${tabs.map(([tb,lbl])=>`<div class="tab ${tb===atkTab?'active':''}" onclick="atkTab='${tb}';renderAtkDetail('${id}')">${lbl}</div>`).join('')}</div>
+     ${body()}</div>`;
+}
+
+/* -------- D3FEND EXPLORER -------- */
+VIEWS.d3fend=function(arg){
+  $('#main').innerHTML=`<h1 class="view-title badge-def">D3FEND Explorer</h1>
+   <p class="view-sub">Defensive countermeasures mapped to the ATT&CK techniques they counter.</p>
+   <div class="panel" style="margin-bottom:14px"><div class="row">
+     <select class="field" id="d3tac" onchange="renderD3()"><option value="">All defensive tactics</option>${KB.d3fend.tactics.map(t=>`<option value="${t.id}">${esc(t.name)}</option>`).join('')}</select>
+     <input class="field" id="d3q" placeholder="Filter…" oninput="renderD3()" style="flex:1">
+   </div></div>
+   <div class="split"><div class="panel list" id="d3List"></div><div id="d3Detail"></div></div>`;
+  renderD3(arg);
+};
+function renderD3(sel){const tac=$('#d3tac')?.value||'';const q=($('#d3q')?.value||'').toLowerCase();
+  let list=KB.d3fend.techniques.filter(d=>(!tac||d.tactic===tac)&&(!q||(d.id+d.name+d.definition).toLowerCase().includes(q)));
+  $('#d3List').innerHTML=list.map(d=>`<div class="li def" data-id="${d.id}" onclick="selD3('${d.id}')">
+     <div class="id">${esc(d.id)}</div><div class="nm">${esc(d.name)}</div><div class="ds">${esc(d.definition)}</div>
+     <div style="margin-top:5px"><span class="chip">${esc(KB.d3fend.tactics.find(t=>t.id===d.tactic)?.name||d.tactic)}</span><span class="pill-count">counters ${d.counters.length}</span></div></div>`).join('')||'<p class="muted">None.</p>';
+  if(typeof sel==='string'&&REV.d3ById[sel])selD3(sel);else if(list.length)selD3(list[0].id);
+}
+function selD3(id){$$('#d3List .li').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));addRecentView(id);const d=REV.d3ById[id];
+  $('#d3Detail').innerHTML=`<div class="panel detail">
+   <button class="btn sm" style="float:right" onclick="addToCollectionPrompt('${d.id}')">+ Collection</button>
+   <div class="row"><span class="tag d3fend">D3FEND</span><h2 style="margin:0;font-size:18px">${esc(d.name)}</h2></div>
+   <div class="mono faint" style="font-size:12px">${esc(d.id)}</div>
+   <div class="sectitle">Definition</div><p>${esc(d.definition)}</p>
+   <div class="kv"><div class="k">Defensive Tactic</div><div><span class="chip on">${esc(KB.d3fend.tactics.find(t=>t.id===d.tactic)?.name)}</span></div></div>
+   <div class="kv"><div class="k">Digital Artifacts</div><div>${d.artifacts.map(a=>`<span class="chip">${esc(a)}</span>`).join('')}</div></div>
+   <div class="sectitle">Counters These ATT&CK Techniques <span class="srcflag auth">authoritative</span></div>
+   ${d.counters.map(a=>{const t=REV.techById[a];return `<div class="li off" onclick="go('attack','${a}')"><div class="id">${esc(a)}</div><div class="nm">${esc(t?t.name:a)}</div></div>`;}).join('')}
+   <div class="sectitle">Implementation Note</div><p class="faint">Apply within a defence-in-depth programme; pair with detection analytics and validate coverage using the Attack-Defence Mapping studio.</p>
+   </div>`;
+}
+
+/* -------- CAPEC EXPLORER -------- */
+VIEWS.capec=function(arg){
+  $('#main').innerHTML=`<h1 class="view-title">CAPEC Explorer</h1>
+   <p class="view-sub">Attack patterns with related weaknesses (CWE) and techniques (ATT&CK).</p>
+   <div class="panel" style="margin-bottom:14px"><div class="row">
+     <select class="field" id="cabs" onchange="renderCapec()"><option value="">All abstraction levels</option><option>Meta</option><option>Standard</option><option>Detailed</option></select>
+     <input class="field" id="caq" placeholder="Filter…" oninput="renderCapec()" style="flex:1"></div></div>
+   <div class="split"><div class="panel list" id="caList"></div><div id="caDetail"></div></div>`;
+  renderCapec(arg);
+};
+function renderCapec(sel){const abs=$('#cabs')?.value||'';const q=($('#caq')?.value||'').toLowerCase();
+  let list=KB.capec.filter(c=>(!abs||c.abstraction===abs)&&(!q||(c.id+c.name+c.summary).toLowerCase().includes(q)));
+  $('#caList').innerHTML=list.map(c=>`<div class="li" data-id="${c.id}" onclick="selCapec('${c.id}')">
+     <div class="id" style="color:#8fb8f6">${esc(c.id)}</div><div class="nm">${esc(c.name)}</div><div class="ds">${esc(c.summary)}</div>
+     <div style="margin-top:5px"><span class="chip">${esc(c.abstraction)}</span>${c.cwe.length?`<span class="pill-count">${c.cwe.length} CWE</span>`:''}</div></div>`).join('')||'<p class="muted">None.</p>';
+  if(typeof sel==='string'&&REV.capecById[sel])selCapec(sel);else if(list.length)selCapec(list[0].id);
+}
+function selCapec(id){$$('#caList .li').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));addRecentView(id);const c=REV.capecById[id];
+  $('#caDetail').innerHTML=`<div class="panel detail">
+   <button class="btn sm" style="float:right" onclick="addToCollectionPrompt('${c.id}')">+ Collection</button>
+   <div class="row"><span class="tag capec">CAPEC</span><h2 style="margin:0;font-size:18px">${esc(c.name)}</h2></div>
+   <div class="mono faint" style="font-size:12px">${esc(c.id)} · ${esc(c.abstraction)}</div>
+   <div class="sectitle">Description</div><p>${esc(c.summary)}</p>
+   <div class="kv"><div class="k">Prerequisites</div><div>${esc(c.prerequisites)}</div></div>
+   <div class="kv"><div class="k">Skills Required</div><div>${esc(c.skills)}</div></div>
+   <div class="kv"><div class="k">Mitigations</div><div>${esc(c.mitigations)}</div></div>
+   <div class="sectitle">Related Weaknesses (CWE) <span class="srcflag auth">authoritative</span></div>
+   ${c.cwe.length?c.cwe.map(w=>{const o=REV.cweById[w];return `<div class="li" onclick="go('cwecve','${w}')"><div class="id">${esc(w)}</div><div class="nm">${esc(o?o.name:w)}</div></div>`;}).join(''):'<p class="faint">—</p>'}
+   <div class="sectitle">Related ATT&CK Techniques</div>
+   ${c.attack.length?c.attack.map(a=>{const t=REV.techById[a];return `<span class="rel" onclick="go('attack','${a}')">⚔ ${esc(a)} ${t?esc(t.name).slice(0,24):''}</span>`;}).join(''):'<p class="faint">—</p>'}
+   </div>`;
+}
+
+/* -------- KILL CHAIN -------- */
+VIEWS.killchain=function(arg){
+  $('#main').innerHTML=`<h1 class="view-title">Lockheed Martin Cyber Kill Chain</h1>
+   <p class="view-sub">Seven stages of intrusion — select a stage to explore techniques, patterns and defences.</p>
+   <div class="panel"><div class="kc-strip" id="kcMain"></div></div>
+   <div id="kcDetail" style="margin-top:14px"></div>`;
+  $('#kcMain').innerHTML=KB.killchain.map((k,i)=>`<div class="kc-stage" data-id="${k.id}" onclick="selKC('${k.id}')">
+     <div class="num">STAGE ${k.n}</div><div class="kn">${esc(k.name)}</div><div class="faint" style="font-size:11px">${k.attack.length} ATT&CK · ${k.capec.length} CAPEC</div>
+     ${i<KB.killchain.length-1?'<span class="arrow">▶</span>':''}</div>`).join('');
+  selKC(arg&&REV.killById[arg]?arg:KB.killchain[0].id);
+};
+function selKC(id){$$('#kcMain .kc-stage').forEach(e=>e.classList.toggle('on',e.dataset.id===id));addRecentView(id);const k=REV.killById[id];
+  $('#kcDetail').innerHTML=`<div class="panel">
+   <div class="row"><span class="tag killchain">STAGE ${k.n}</span><h2 style="margin:0">${esc(k.name)}</h2>
+     <span class="sp"></span><button class="btn sm" onclick="addToCollectionPrompt('${k.id}')">+ Collection</button></div>
+   <p style="margin-top:10px">${esc(k.summary)}</p>
+   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+     <div><div class="sectitle">Objectives</div><ul class="clean">${k.objectives.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>
+       <div class="sectitle">Common Behaviours</div><ul class="clean">${k.behaviours.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>
+     <div><div class="sectitle badge-def">Defensive Opportunities</div><ul class="clean">${k.defence.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>
+       <div class="sectitle">Detection Opportunities</div><ul class="clean">${k.detection.map(o=>`<li>${esc(o)}</li>`).join('')}</ul></div>
+   </div>
+   <div class="sectitle">Relevant ATT&CK Techniques</div>
+   ${k.attack.map(a=>{const t=REV.techById[a];return `<span class="rel" onclick="go('attack','${a}')">⚔ ${esc(a)}${t?' '+esc(t.name).slice(0,22):''}</span>`;}).join('')}
+   <div class="sectitle">Relevant CAPEC Patterns</div>
+   ${k.capec.length?k.capec.map(c=>{const o=REV.capecById[c];return `<span class="rel" onclick="go('capec','${c}')">❂ ${esc(c)}${o?' '+esc(o.name).slice(0,22):''}</span>`;}).join(''):'<span class="faint">—</span>'}
+   <div class="sectitle">Example Scenario</div><p class="faint">${esc(k.scenario)}</p>
+   <div class="sectitle">Questions for Analysts</div><ul class="clean">${k.questions.map(q=>`<li>${esc(q)}</li>`).join('')}</ul>
+   </div>`;
+}
+
+/* -------- CWE / CVE EXPLORER -------- */
+let cweTab='cwe';
+VIEWS.cwecve=function(arg){
+  if(arg&&arg.startsWith('CVE'))cweTab='cve';else if(arg&&arg.startsWith('CWE'))cweTab='cwe';
+  $('#main').innerHTML=`<h1 class="view-title badge-off">CWE / CVE Explorer</h1>
+   <p class="view-sub">Software weaknesses and landmark vulnerabilities — correlated to CAPEC and ATT&CK. CVEs are NVD-referenced, not fabricated.</p>
+   <div class="tabs"><div class="tab ${cweTab==='cwe'?'active':''}" onclick="cweTab='cwe';VIEWS.cwecve()">CWE Weaknesses (${C.cwe})</div>
+     <div class="tab ${cweTab==='cve'?'active':''}" onclick="cweTab='cve';VIEWS.cwecve()">CVE Vulnerabilities (${C.cve})</div></div>
+   <div class="panel" style="margin-bottom:14px"><input class="field" id="wcq" placeholder="Filter…" oninput="renderCwe()" style="width:100%"></div>
+   <div class="split"><div class="panel list" id="wcList"></div><div id="wcDetail"></div></div>`;
+  renderCwe(arg);
+};
+function renderCwe(sel){const q=($('#wcq')?.value||'').toLowerCase();
+  if(cweTab==='cwe'){let list=KB.cwe.filter(c=>!q||(c.id+c.name+c.summary).toLowerCase().includes(q));
+    $('#wcList').innerHTML=list.map(c=>`<div class="li" data-id="${c.id}" onclick="selCwe('${c.id}')"><div class="id" style="color:#7fe4ea">${esc(c.id)}</div><div class="nm">${esc(c.name)}</div><div class="ds">${esc(c.summary)}</div></div>`).join('')||'<p class="muted">None.</p>';
+    if(typeof sel==='string'&&REV.cweById[sel])selCwe(sel);else if(list.length)selCwe(list[0].id);
+  }else{let list=KB.cve.filter(c=>!q||(c.id+c.desc+c.products.join(' ')).toLowerCase().includes(q));
+    $('#wcList').innerHTML=list.map(c=>`<div class="li off" data-id="${c.id}" onclick="selCve('${c.id}')"><div class="id">${esc(c.id)}</div><div class="nm sev-${c.severity}">${esc(c.severity)} · CVSS ${esc(c.cvss)}</div><div class="ds">${esc(c.desc)}</div></div>`).join('')||'<p class="muted">None.</p>';
+    if(typeof sel==='string'&&sel.startsWith('CVE'))selCve(sel);else if(list.length)selCve(list[0].id);
+  }
+}
+function selCwe(id){$$('#wcList .li').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));addRecentView(id);const c=REV.cweById[id];
+  const cves=REV.cwe2cve[id]||[];const capec=REV.cwe2capec[id]||c.capec||[];
+  $('#wcDetail').innerHTML=`<div class="panel detail">
+   <button class="btn sm" style="float:right" onclick="addToCollectionPrompt('${c.id}')">+ Collection</button>
+   <div class="row"><span class="tag cwe">CWE</span><h2 style="margin:0;font-size:17px">${esc(c.name)}</h2></div>
+   <div class="mono faint" style="font-size:12px">${esc(c.id)}</div>
+   <div class="sectitle">Description</div><p>${esc(c.summary)}</p>
+   <div class="kv"><div class="k">Consequences</div><div>${esc(c.consequences)}</div></div>
+   <div class="kv"><div class="k">Mitigations</div><div>${esc(c.mitigations)}</div></div>
+   <div class="sectitle">Related CAPEC</div>${capec.length?capec.map(x=>`<span class="rel" onclick="go('capec','${x}')">❂ ${esc(x)}</span>`).join(''):'<span class="faint">—</span>'}
+   <div class="sectitle">Related ATT&CK</div>${(c.attack||[]).length?c.attack.map(x=>`<span class="rel" onclick="go('attack','${x}')">⚔ ${esc(x)}</span>`).join(''):'<span class="faint">—</span>'}
+   <div class="sectitle">Observed In CVEs</div>${cves.length?cves.map(x=>`<div class="li off" onclick="cweTab='cve';VIEWS.cwecve('${x}')"><div class="id">${esc(x)}</div><div class="ds">${esc(REV_cve(x).desc)}</div></div>`).join(''):'<span class="faint">None in this dataset.</span>'}
+   </div>`;
+}
+function REV_cve(id){return KB.cve.find(c=>c.id===id)||{desc:''};}
+function selCve(id){$$('#wcList .li').forEach(e=>e.classList.toggle('sel',e.dataset.id===id));addRecentView(id);const c=REV_cve(id);
+  $('#wcDetail').innerHTML=`<div class="panel detail">
+   <button class="btn sm" style="float:right" onclick="addToCollectionPrompt('${c.id}')">+ Collection</button>
+   <div class="row"><span class="tag cve">CVE</span><h2 style="margin:0;font-size:17px">${esc(c.id)}</h2></div>
+   <div class="sectitle">Description</div><p>${esc(c.desc)}</p>
+   <div class="kv"><div class="k">Severity</div><div class="sev-${c.severity}">${esc(c.severity)}</div></div>
+   <div class="kv"><div class="k">CVSS</div><div class="mono">${esc(c.cvss)}</div></div>
+   <div class="kv"><div class="k">Affected</div><div>${c.products.map(p=>`<span class="chip">${esc(p)}</span>`).join('')}</div></div>
+   <div class="sectitle">CWE Mapping</div>${c.cwe.map(w=>{const o=REV.cweById[w];return `<div class="li" onclick="cweTab='cwe';VIEWS.cwecve('${w}')"><div class="id">${esc(w)}</div><div class="nm">${esc(o?o.name:w)}</div></div>`;}).join('')}
+   <div class="sectitle">Related ATT&CK</div>${(c.attack||[]).map(a=>`<span class="rel" onclick="go('attack','${a}')">⚔ ${esc(a)}</span>`).join('')||'<span class="faint">—</span>'}
+   <p class="faint" style="margin-top:12px">Reference: NVD record ${esc(c.id)} (consult nvd.nist.gov for authoritative detail).</p>
+   </div>`;
+}
+
+/* -------- METHODOLOGY (PTES / WSTG / OWASP / NIST + LEARNING) -------- */
+let methTab='ptes';
+VIEWS.methodology=function(arg){
+  if(arg){if(arg.startsWith('WSTG'))methTab='wstg';else if(KB.ptes.find(p=>p.id===arg))methTab='ptes';}
+  $('#main').innerHTML=`<h1 class="view-title">Pentest Methodology Learning Hub</h1>
+   <p class="view-sub">PTES · OWASP WSTG · OWASP Top 10 · NIST — study materials, steps, checklists and assessment questions.</p>
+   <div class="notice" style="margin-bottom:14px">All hands-on content is for authorized assessments, controlled labs and explicitly scoped systems only.</div>
+   <div class="tabs">
+     ${['ptes','wstg','owasp','nist','learn'].map(t=>`<div class="tab ${t===methTab?'active':''}" onclick="methTab='${t}';VIEWS.methodology()">${({ptes:'PTES',wstg:'OWASP WSTG',owasp:'OWASP Top 10',nist:'NIST',learn:'Learning Path'})[t]}</div>`).join('')}
+   </div><div id="methBody"></div>`;
+  renderMeth(arg);
+};
+function renderMeth(arg){const b=$('#methBody');
+  if(methTab==='ptes'){b.innerHTML=KB.ptes.map(p=>`<div class="panel" style="margin-bottom:12px" id="${p.id}">
+     <div class="row"><h3 style="margin:0">${esc(p.name)}</h3><span class="sp"></span><button class="btn sm" onclick="addToCollectionPrompt('${p.id}')">+ Collection</button></div>
+     <p class="muted">${esc(p.summary)}</p>
+     <div class="grid" style="grid-template-columns:1fr 1fr">
+       <div><div class="sectitle">Methodology Steps</div><ul class="clean">${p.steps.map(s=>`<li>${esc(s)}</li>`).join('')}</ul></div>
+       <div><div class="sectitle">Checklist</div>${p.checklist.map(c=>`<div class="checkitem"><input type="checkbox">${esc(c)}</div>`).join('')}</div>
+     </div>
+     ${p.attack.length?`<div class="sectitle">Related ATT&CK</div>${p.attack.map(a=>`<span class="rel" onclick="go('attack','${a}')">⚔ ${esc(a)}</span>`).join('')}`:''}</div>`).join('');}
+  else if(methTab==='wstg'){b.innerHTML='<div class="card-grid">'+KB.wstg.map(w=>`<div class="fcard" style="cursor:default" id="${w.id}"><h4>${esc(w.name)}</h4><p>${esc(w.summary)}</p>
+     <div class="sectitle" style="margin-top:10px">Test Cases</div>${w.tests.map(t=>`<div class="faint" style="font-size:12px">• ${esc(t)}</div>`).join('')}</div>`).join('')+'</div>';}
+  else if(methTab==='owasp'){b.innerHTML=`<div class="row" style="margin-bottom:10px"><span class="pill-count">${esc(KB.meta.owasp_version||'OWASP Top 10')}</span><span class="faint" style="font-size:11px">Current edition — SSRF folded into A01; A03 Supply Chain & A10 Exceptional Conditions are new.</span></div>`+'<div class="card-grid">'+KB.owasp_top10.map(o=>`<div class="fcard" style="cursor:default"><h4>${esc(o.id)} — ${esc(o.name)}</h4><p>${esc(o.summary)}</p>
+     <div style="margin-top:8px">${o.cwe.map(w=>`<span class="rel" onclick="go('cwecve','${w}')">${esc(w)}</span>`).join('')}</div></div>`).join('')+'</div>';}
+  else if(methTab==='nist'){b.innerHTML=`<div class="panel"><div class="sectitle" style="margin-top:0">NIST Cybersecurity Framework — Functions</div>
+     <div class="card-grid">${KB.nist_csf.map(n=>`<div class="fcard" style="cursor:default"><h4>${esc(n.id)} · ${esc(n.name)}</h4><p>${esc(n.summary)}</p></div>`).join('')}</div></div>
+     <div class="panel" style="margin-top:12px"><div class="sectitle" style="margin-top:0">NIST SP 800-115 — Assessment Phases</div>
+     <div class="card-grid">${KB.nist_800115.map(n=>`<div class="fcard" style="cursor:default"><h4>${esc(n.name)}</h4><p>${esc(n.summary)}</p></div>`).join('')}</div></div>`;}
+  else if(methTab==='learn'){b.innerHTML=KB.learning.map((ph,pi)=>`<div class="panel" style="margin-bottom:12px">
+     <h3 style="margin:0 0 4px">${esc(ph.phase)}</h3>
+     ${ph.topics.map((tp,ti)=>`<div style="border:1px solid var(--border);border-radius:9px;padding:13px;margin-top:10px">
+       <h4 style="margin:0 0 6px">${esc(tp.name)}</h4>
+       <div class="sectitle" style="margin-top:4px">Learning Objectives</div><ul class="clean">${tp.objectives.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>
+       <div class="sectitle">Methodology</div><ul class="clean">${tp.methodology.map(o=>`<li>${esc(o)}</li>`).join('')}</ul>
+       <div class="sectitle">Checklist</div>${tp.checklist.map(c=>`<div class="checkitem"><input type="checkbox">${esc(c)}</div>`).join('')}
+       <div class="sectitle">Relevant Frameworks</div>${tp.frameworks.map(f=>`<span class="chip">${esc(f)}</span>`).join('')}
+       <div style="margin-top:10px"><button class="btn sm" onclick="startTopicQuiz(${pi},${ti})">▶ Quick Quiz (${tp.quiz.length})</button></div>
+     </div>`).join('')}</div>`).join('');}
+  if(arg){const el=document.getElementById(arg);if(el)el.scrollIntoView({behavior:'smooth',block:'center'});}
+}
+function startTopicQuiz(pi,ti){const tp=KB.learning[pi].topics[ti];quizState={pool:tp.quiz.map(q=>({q:q.q,a:q.a.filter(x=>x!=='c'),c:q.c})),i:0,score:0,src:tp.name};go('study');setTimeout(()=>{studyTab='quiz';renderStudy();},30);}
+
+/* -------- ATTACK-DEFENCE MAPPING -------- */
+let MAPsel=[];
+VIEWS.mapping=function(){
+  $('#main').innerHTML=`<h1 class="view-title">Attack-Defence Mapping Studio</h1>
+   <p class="view-sub">Select ATT&CK techniques to build a correlated offence↔defence view and relationship graph.</p>
+   <div class="panel" style="margin-bottom:14px">
+     <label class="lbl">Add techniques</label>
+     <div class="row"><select class="field" id="mapAdd" style="flex:1"><option value="">Choose an ATT&CK technique…</option>${KB.attack.techniques.map(t=>`<option value="${t.id}">${t.id} — ${esc(t.name)}</option>`).join('')}</select>
+       <button class="btn" onclick="mapAddTech()">+ Add</button>
+       <button class="btn sm" onclick="mapPreset()">⚡ Load 'Windows Domain Compromise'</button>
+       <button class="btn sm danger" onclick="MAPsel=[];renderMap()">Clear</button></div>
+     <div id="mapChips" style="margin-top:10px"></div>
+   </div>
+   <div id="mapOut"></div>`;
+  MAPsel=store('mapsel')||[];renderMap();
+};
+function mapAddTech(){const v=$('#mapAdd').value;if(v&&!MAPsel.includes(v)){MAPsel.push(v);store('mapsel',MAPsel);renderMap();}}
+function mapPreset(){MAPsel=uniq(['T1595','T1087','T1003','T1078','T1021','T1068','T1550','T1486']);store('mapsel',MAPsel);renderMap();}
+function mapRemove(id){MAPsel=MAPsel.filter(x=>x!==id);store('mapsel',MAPsel);renderMap();}
+function mapCorrelate(){const capec=new Set(),cwe=new Set(),d3=new Set(),mit=new Set(),kc=new Set(),ptes=new Set();
+  MAPsel.forEach(id=>{const t=REV.techById[id];if(!t)return;
+    (REV.attack2capec[id]||t.capec||[]).forEach(x=>capec.add(x));
+    (REV.attack2cwe[id]||t.cwe||[]).forEach(x=>cwe.add(x));
+    (REV.attack2d3[id]||[]).forEach(x=>d3.add(x));
+    (t.mitigations||[]).forEach(x=>mit.add(x));
+    (t.killchain||[]).forEach(x=>kc.add(x));
+    ptesForTech(id).forEach(p=>ptes.add(p.id));});
+  return{capec:[...capec],cwe:[...cwe],d3:[...d3],mit:[...mit],kc:[...kc],ptes:[...ptes]};}
+function renderMap(){
+  $('#mapChips').innerHTML=MAPsel.length?MAPsel.map(id=>{const t=REV.techById[id];return `<span class="chip on">${esc(id)} ${t?esc(t.name).slice(0,20):''} <b style="cursor:pointer" onclick="mapRemove('${id}')">×</b></span>`;}).join(''):'<span class="faint">No techniques selected.</span>';
+  if(!MAPsel.length){$('#mapOut').innerHTML='';return;}
+  const c=mapCorrelate();
+  const n=MAPsel.length;const wD3=MAPsel.filter(id=>(REV.attack2d3[id]||[]).length).length;const wDet=MAPsel.filter(id=>KB.detection.techniques[id]).length;const wMit=MAPsel.filter(id=>{const t=REV.techById[id];return t&&(t.mitigations||[]).length;}).length;
+  const pc=x=>Math.round(x/n*100);const covbar=(l,v,cls)=>`<div class="cov-row"><span>${l}</span><div class="cov-bar"><i class="${cls}" style="width:${pc(v)}%"></i></div><span class="mono">${v}/${n}</span></div>`;
+  $('#mapOut').innerHTML=`
+   <div class="panel" style="margin-bottom:14px"><div class="sectitle" style="margin-top:0">Defensive Coverage of Selection</div>
+     ${covbar('Has D3FEND countermeasure',wD3,'g')}${covbar('Has detection profile',wDet,'b')}${covbar('Has ATT&CK mitigation',wMit,'a')}
+     ${wDet<n?`<p class="faint" style="font-size:11px">Detection gaps: ${MAPsel.filter(id=>!KB.detection.techniques[id]).join(', ')||'none'}</p>`:''}</div>
+   <div class="panel"><div class="row"><h3 style="margin:0">Correlated Attack-Defence View</h3><span class="sp"></span>
+     <button class="btn sm" onclick="saveMapCollection()">❏ Save as Collection</button>
+     <button class="btn sm" onclick="exportMapping()">⬇ Export</button></div>
+   <div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(220px,1fr));margin-top:12px">
+     <div><div class="sectitle badge-off" style="margin-top:0">CAPEC Patterns (${c.capec.length})</div>${c.capec.map(x=>{const o=REV.capecById[x];return `<div class="rel" onclick="go('capec','${x}')">${esc(x)} ${o?esc(o.name).slice(0,20):''}</div>`;}).join('')||'<span class="faint">—</span>'}</div>
+     <div><div class="sectitle badge-off" style="margin-top:0">CWE Weaknesses (${c.cwe.length})</div>${c.cwe.map(x=>{const o=REV.cweById[x];return `<div class="rel" onclick="go('cwecve','${x}')">${esc(x)} ${o?esc(o.name).slice(0,20):''}</div>`;}).join('')||'<span class="faint">—</span>'}</div>
+     <div><div class="sectitle badge-def" style="margin-top:0">D3FEND Countermeasures (${c.d3.length})</div>${c.d3.map(x=>{const o=REV.d3ById[x];return `<div class="rel" onclick="go('d3fend','${x}')">${esc(x)} ${esc(o.name).slice(0,20)}</div>`;}).join('')||'<span class="faint">—</span>'}</div>
+     <div><div class="sectitle badge-def" style="margin-top:0">Mitigations (${c.mit.length})</div>${c.mit.map(x=>`<div class="chip">${esc(x)}</div>`).join('')||'<span class="faint">—</span>'}</div>
+     <div><div class="sectitle" style="margin-top:0">Kill Chain Stages</div>${c.kc.map(x=>{const k=REV.killById[x];return `<div class="rel" onclick="go('killchain','${x}')">⛓ ${esc(k.name)}</div>`;}).join('')||'<span class="faint">—</span>'}</div>
+     <div><div class="sectitle" style="margin-top:0">PTES Phases</div>${c.ptes.map(x=>`<div class="rel" onclick="go('methodology','${x}')">❑ ${esc(KB.ptes.find(p=>p.id===x).name)}</div>`).join('')||'<span class="faint">—</span>'}</div>
+   </div></div>
+   <div class="panel" style="margin-top:14px"><div class="row"><h3 style="margin:0">Relationship Graph</h3><span class="sp"></span>
+     <button class="btn sm" onclick="exportGraphSVG('mapGraphSvg','attack-defence-graph')">⬇ SVG</button></div>
+     <div class="graph-wrap" id="mapGraph" style="margin-top:10px"></div>
+     <div class="faint" style="font-size:11px;margin-top:6px">Red = offensive · Green = defensive · Blue = pattern · Cyan = weakness. Drag to pan, scroll to zoom.</div>
+   </div>`;
+  buildMapGraph(c);
+}
+function saveMapCollection(){const name=prompt('Collection name:','Attack-Defence Mapping');if(!name)return;const c=mapCorrelate();
+  const items=uniq([...MAPsel,...c.capec,...c.cwe,...c.d3,...c.kc,...c.ptes]);addCollection(name,items);toast('Saved '+items.length+' items');}
+function buildMapGraph(c){
+  const nodes=[],links=[];const add=(id,label,type)=>{if(!nodes.find(n=>n.id===id)){nodes.push({id,label,type});}};
+  MAPsel.forEach(id=>{const t=REV.techById[id];add(id,id,'attack');});
+  c.capec.forEach(x=>add(x,x,'capec'));c.cwe.forEach(x=>add(x,x,'cwe'));c.d3.forEach(x=>{add(x,x,'d3');});
+  MAPsel.forEach(id=>{const t=REV.techById[id];
+    (REV.attack2capec[id]||t.capec||[]).forEach(x=>links.push([id,x]));
+    (REV.attack2cwe[id]||t.cwe||[]).forEach(x=>links.push([id,x]));
+    (REV.attack2d3[id]||[]).forEach(x=>links.push([id,x]));});
+  drawGraph('mapGraph','mapGraphSvg',nodes,links);
+}
+
+/* generic force graph */
+function drawGraph(containerId,svgId,nodes,linkPairs){
+  const W=900,H=460;const byId={};nodes.forEach(n=>byId[n.id]=n);
+  const links=linkPairs.map(([a,b])=>({s:byId[a],t:byId[b]})).filter(l=>l.s&&l.t);
+  nodes.forEach((n,i)=>{n.x=W/2+Math.cos(i/nodes.length*6.28)*160*Math.random()+ (Math.random()*60-30);n.y=H/2+Math.sin(i/nodes.length*6.28)*140*Math.random();n.vx=0;n.vy=0;});
+  for(let it=0;it<320;it++){
+    for(let i=0;i<nodes.length;i++)for(let j=i+1;j<nodes.length;j++){
+      let dx=nodes[i].x-nodes[j].x,dy=nodes[i].y-nodes[j].y,d2=dx*dx+dy*dy+0.1,d=Math.sqrt(d2);
+      let f=2600/d2,fx=f*dx/d,fy=f*dy/d;nodes[i].vx+=fx;nodes[i].vy+=fy;nodes[j].vx-=fx;nodes[j].vy-=fy;}
+    links.forEach(l=>{let dx=l.t.x-l.s.x,dy=l.t.y-l.s.y,d=Math.sqrt(dx*dx+dy*dy)+0.1,f=(d-110)*0.025,fx=f*dx/d,fy=f*dy/d;l.s.vx+=fx;l.s.vy+=fy;l.t.vx-=fx;l.t.vy-=fy;});
+    nodes.forEach(n=>{n.vx+=(W/2-n.x)*0.004;n.vy+=(H/2-n.y)*0.004;n.x+=Math.max(-12,Math.min(12,n.vx));n.y+=Math.max(-12,Math.min(12,n.vy));n.vx*=0.82;n.vy*=0.82;});
+  }
+  const col={attack:'#ef4a5a',capec:'#3b82f6',cwe:'#35d0d8',d3:'#2fbf71',cve:'#ff6b78',kc:'#a06bd8',tactic:'#8aa0b6'};
+  const linksSvg=links.map(l=>`<line x1="${l.s.x.toFixed(1)}" y1="${l.s.y.toFixed(1)}" x2="${l.t.x.toFixed(1)}" y2="${l.t.y.toFixed(1)}" stroke="#28415a" stroke-width="1"/>`).join('');
+  const nodesSvg=nodes.map(n=>`<g class="gnode" style="cursor:pointer" onclick="openId('${n.id}')"><circle cx="${n.x.toFixed(1)}" cy="${n.y.toFixed(1)}" r="${n.type==='attack'?11:8}" fill="${col[n.type]||'#888'}" stroke="#0a0f16" stroke-width="2"/>
+     <text x="${n.x.toFixed(1)}" y="${(n.y-13).toFixed(1)}" fill="#cdd9e5" font-size="9" text-anchor="middle" font-family="monospace">${esc(n.label)}</text></g>`).join('');
+  $('#'+containerId).innerHTML=`<svg id="${svgId}" viewBox="0 0 ${W} ${H}" preserveAspectRatio="xMidYMid meet">${linksSvg}${nodesSvg}</svg>
+    <div class="glegend"><span><i class="gdot" style="background:#ef4a5a"></i>Offensive</span><span><i class="gdot" style="background:#2fbf71"></i>Defensive</span><span><i class="gdot" style="background:#3b82f6"></i>Pattern</span><span><i class="gdot" style="background:#35d0d8"></i>Weakness</span></div>`;
+  enableZoomPan(svgId,W,H);
+}
+function enableZoomPan(svgId,W,H){const svg=document.getElementById(svgId);if(!svg)return;let vb={x:0,y:0,w:W,h:H};let drag=null;
+  const apply=()=>svg.setAttribute('viewBox',`${vb.x} ${vb.y} ${vb.w} ${vb.h}`);
+  svg.addEventListener('wheel',e=>{e.preventDefault();const s=e.deltaY>0?1.1:0.9;const mx=vb.x+vb.w*(e.offsetX/svg.clientWidth);const my=vb.y+vb.h*(e.offsetY/svg.clientHeight);
+    vb.w=Math.min(W*3,Math.max(W*0.3,vb.w*s));vb.h=Math.min(H*3,Math.max(H*0.3,vb.h*s));vb.x=mx-vb.w*(e.offsetX/svg.clientWidth);vb.y=my-vb.h*(e.offsetY/svg.clientHeight);apply();},{passive:false});
+  svg.addEventListener('mousedown',e=>{drag={x:e.clientX,y:e.clientY,vx:vb.x,vy:vb.y};});
+  window.addEventListener('mousemove',e=>{if(!drag)return;vb.x=drag.vx-(e.clientX-drag.x)*vb.w/svg.clientWidth;vb.y=drag.vy-(e.clientY-drag.y)*vb.h/svg.clientHeight;apply();});
+  window.addEventListener('mouseup',()=>drag=null);
+}
+function exportGraphSVG(svgId,name){const svg=document.getElementById(svgId);if(!svg){toast('No graph');return;}
+  download(name+'.svg','<?xml version="1.0"?>\n'+svg.outerHTML,'image/svg+xml');toast('SVG exported');}
+
+/* -------- NAVIGATOR MATRIX -------- */
+let LAYER={};
+VIEWS.matrix=function(){
+  LAYER=store('layer')||{};
+  $('#main').innerHTML=`<h1 class="view-title">ATT&CK Navigator Matrix</h1>
+   <p class="view-sub">Enterprise tactics × techniques. Click a cell to score; export a Navigator-compatible layer.</p>
+   <div class="panel" style="margin-bottom:12px"><div class="row">
+     <input class="field" id="mxq" placeholder="Highlight technique…" oninput="renderMatrix()" style="flex:1">
+     <label class="lbl" style="margin:0">Score colour</label>
+     <input type="color" id="mxColor" value="#35d0d8" class="field" style="padding:2px;width:46px">
+     <button class="btn sm" onclick="exportLayerJSON()">⬇ Layer JSON</button>
+     <button class="btn sm" onclick="document.getElementById('layerImp').click()">⬆ Import Layer</button>
+     <input type="file" id="layerImp" accept=".json" style="display:none" onchange="importLayer(this)">
+     <button class="btn sm" onclick="exportMatrixCSV()">⬇ CSV</button>
+     <button class="btn sm" onclick="exportGraphSVG('mxSvgExport','matrix')" style="display:none"></button>
+     <button class="btn sm danger" onclick="LAYER={};store('layer',LAYER);renderMatrix()">Clear</button>
+   </div><div class="faint" style="font-size:11px;margin-top:6px">Scored: <span id="mxScored">0</span> techniques</div></div>
+   <div class="matrix-wrap"><div class="matrix" id="matrix"></div></div>`;
+  renderMatrix();
+};
+function renderMatrix(){const q=($('#mxq')?.value||'').toLowerCase();const tacs=KB.attack.tactics.slice().sort((a,b)=>a.order-b.order);
+  const byTac={};tacs.forEach(t=>byTac[t.id]=[]);
+  KB.attack.techniques.forEach(t=>t.tactics.forEach(tc=>{if(byTac[tc])byTac[tc].push(t);}));
+  $('#matrix').innerHTML=tacs.map(tc=>`<div class="mcol"><div class="mh"><div class="tn">${esc(tc.name)}</div><div class="tc">${tc.id} · ${byTac[tc.id].length}</div></div>
+     ${byTac[tc.id].map(t=>{const sc=LAYER[t.id];const hl=q&&(t.id+t.name).toLowerCase().includes(q);
+       return `<div class="cell ${sc?'scored':''}" style="${sc?`--score:${sc.color};`:''}${hl?'background:rgba(240,161,46,.18);':''}" onclick="scoreCell('${t.id}')" title="${esc(t.name)}">
+         <div class="cid">${esc(t.id)}</div>${esc(t.name)}${sc&&sc.score!=null?` <b class="mono" style="color:${sc.color}">[${sc.score}]</b>`:''}</div>`;}).join('')}</div>`).join('');
+  $('#mxScored')&&($('#mxScored').textContent=Object.keys(LAYER).length);
+}
+function scoreCell(id){const color=$('#mxColor').value;const cur=LAYER[id];
+  if(cur){const s=prompt('Score (0-100) or blank to remove. Add note after | :',(cur.score!=null?cur.score:'')+(cur.note?' | '+cur.note:''));
+    if(s===null)return;if(s.trim()===''){delete LAYER[id];}else{const[sc,note]=s.split('|');LAYER[id]={score:parseFloat(sc)||0,color,note:(note||'').trim()};}}
+  else{LAYER[id]={score:null,color,note:''};}
+  store('layer',LAYER);renderMatrix();
+}
+function exportLayerJSON(){const layer={name:store('layerName')||'TTP NEXUS Layer',versions:{attack:'15',navigator:'4.9.0',layer:'4.5'},domain:'enterprise-attack',description:'Exported from TTP NEXUS',
+   techniques:Object.entries(LAYER).map(([id,v])=>({techniqueID:id,score:v.score==null?0:v.score,color:v.color||'',comment:v.note||'',enabled:true})),
+   gradient:{colors:['#ffffff','#35d0d8'],minValue:0,maxValue:100},legendItems:[],showTacticRowBackground:false,sorting:0,hideDisabled:false};
+  download('attack-navigator-layer.json',JSON.stringify(layer,null,2),'application/json');toast('Navigator layer exported');}
+function importLayer(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const j=JSON.parse(r.result);LAYER={};(j.techniques||[]).forEach(t=>{if(t.techniqueID)LAYER[t.techniqueID]={score:t.score,color:t.color||'#35d0d8',note:t.comment||''};});store('layer',LAYER);renderMatrix();toast('Imported '+Object.keys(LAYER).length+' techniques');}catch(e){toast('Invalid layer JSON');}};r.readAsText(f);}
+function exportMatrixCSV(){let rows=[['TechniqueID','Name','Tactics','Score','Note']];KB.attack.techniques.forEach(t=>{const s=LAYER[t.id];rows.push([t.id,t.name,t.tactics.map(tacticName).join('; '),s?(s.score==null?'selected':s.score):'',s?s.note:'']);});
+  download('attack-matrix.csv',rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');toast('CSV exported');}
+
+/* -------- KNOWLEDGE GRAPH -------- */
+VIEWS.graph=function(){
+  $('#main').innerHTML=`<h1 class="view-title">Interactive Knowledge Graph</h1>
+   <p class="view-sub">Cross-framework relationships. Pick a focus and depth, then explore.</p>
+   <div class="panel" style="margin-bottom:12px"><div class="row">
+     <select class="field" id="gfocus" style="min-width:260px">${KB.attack.techniques.map(t=>`<option value="${t.id}">⚔ ${t.id} — ${esc(t.name)}</option>`).join('')}</select>
+     <select class="field" id="gdepth"><option value="1">1 hop</option><option value="2" selected>2 hops</option></select>
+     <button class="btn primary sm" onclick="renderKGraph()">Build Graph</button>
+     <button class="btn sm" onclick="exportGraphSVG('kgSvg','knowledge-graph')">⬇ SVG</button>
+     <button class="btn sm" onclick="exportKGraphJSON()">⬇ JSON</button>
+   </div></div>
+   <div class="panel"><div class="graph-wrap" id="kgraph"><p class="faint" style="padding:40px;text-align:center">Select a focus technique and click Build Graph.</p></div></div>`;
+  $('#gfocus').value='T1003';renderKGraph();
+};
+let KG={nodes:[],links:[]};
+function renderKGraph(){const focus=$('#gfocus').value;const depth=parseInt($('#gdepth').value);
+  const nodes=[],links=[];const addN=(id,label,type)=>{if(!nodes.find(n=>n.id===id))nodes.push({id,label,type});};const addL=(a,b)=>links.push([a,b]);
+  const t=REV.techById[focus];addN(focus,focus,'attack');
+  const expand=(id)=>{const tt=REV.techById[id];if(!tt)return;
+    (REV.attack2capec[id]||tt.capec||[]).forEach(x=>{addN(x,x,'capec');addL(id,x);});
+    (REV.attack2cwe[id]||tt.cwe||[]).forEach(x=>{addN(x,x,'cwe');addL(id,x);});
+    (REV.attack2d3[id]||[]).forEach(x=>{addN(x,x,'d3');addL(id,x);});
+    (tt.killchain||[]).forEach(x=>{const k=REV.killById[x];addN(x,k.name,'kc');addL(id,x);});};
+  expand(focus);
+  if(depth===2){ // second hop: capec->cwe, cwe->cve
+    [...nodes].forEach(n=>{if(n.type==='capec'){(REV.capecById[n.id].cwe||[]).forEach(w=>{addN(w,w,'cwe');addL(n.id,w);});}
+      if(n.type==='cwe'){(REV.cwe2cve[n.id]||[]).forEach(v=>{addN(v,v,'cve');addL(n.id,v);});}});}
+  KG={nodes,links};drawGraph('kgraph','kgSvg',nodes,links);
+}
+function exportKGraphJSON(){download('knowledge-graph.json',JSON.stringify({nodes:KG.nodes,edges:KG.links.map(([s,t])=>({source:s,target:t}))},null,2),'application/json');toast('Graph JSON exported');}
+
+/* -------- SCENARIO BUILDER -------- */
+VIEWS.scenario=function(){const S=KB.scenario_templates;
+  $('#main').innerHTML=`<h1 class="view-title">Scenario Builder</h1>
+   <p class="view-sub">Compose a conceptual assessment scenario for methodology understanding and defensive validation.</p>
+   <div class="panel" style="margin-bottom:14px"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+     <div><label class="lbl">Target Environment</label><select class="field" id="sEnv" style="width:100%">${S.environments.map(x=>`<option>${x}</option>`).join('')}</select></div>
+     <div><label class="lbl">Threat Actor</label><select class="field" id="sActor" style="width:100%">${S.actors.map(x=>`<option>${x}</option>`).join('')}</select></div>
+     <div><label class="lbl">Objective</label><select class="field" id="sObj" style="width:100%">${S.objectives.map(x=>`<option>${x}</option>`).join('')}</select></div>
+     <div><label class="lbl">Initial Access</label><select class="field" id="sAcc" style="width:100%">${S.access.map(x=>`<option>${x}</option>`).join('')}</select></div>
+   </div>
+   <label class="lbl" style="margin-top:12px">ATT&CK Techniques (multi-select)</label>
+   <select class="field" id="sTechs" multiple size="6" style="width:100%">${KB.attack.techniques.map(t=>`<option value="${t.id}">${t.id} — ${esc(t.name)} (${t.tactics.map(tacticName)[0]})</option>`).join('')}</select>
+   <div class="row" style="margin-top:12px"><button class="btn primary" onclick="genScenario()">Generate Scenario</button>
+     <button class="btn sm" onclick="scenarioQuick()">⚡ Ransomware preset</button></div></div>
+   <div id="scenarioOut"></div>`;
+};
+function scenarioQuick(){$('#sEnv').value='Enterprise Windows/AD';$('#sActor').value='Ransomware affiliate';$('#sObj').value='Ransomware impact';$('#sAcc').value='Phishing';
+  const presets=['T1566','T1059','T1078','T1003','T1021','T1486','T1490'];[...$('#sTechs').options].forEach(o=>o.selected=presets.includes(o.value));genScenario();}
+function genScenario(){const env=$('#sEnv').value,actor=$('#sActor').value,obj=$('#sObj').value,acc=$('#sAcc').value;
+  const techs=[...$('#sTechs').selectedOptions].map(o=>o.value);if(!techs.length){toast('Select at least one technique');return;}
+  // order techniques by tactic order
+  const ord=KB.attack.tactics.slice().sort((a,b)=>a.order-b.order).map(t=>t.id);
+  const sorted=techs.slice().sort((a,b)=>{const ta=REV.techById[a],tb=REV.techById[b];return ord.indexOf(ta.tactics[0])-ord.indexOf(tb.tactics[0]);});
+  const d3=new Set(),det=new Set(),kc=new Set();
+  sorted.forEach(id=>{(REV.attack2d3[id]||[]).forEach(x=>d3.add(x));const t=REV.techById[id];if(t.detection)det.add(t.detection);(t.killchain||[]).forEach(x=>kc.add(x));});
+  const html=`<div class="panel" id="scenarioCard">
+   <div class="row"><h2 style="margin:0">${esc(obj)} — ${esc(env)}</h2><span class="sp"></span>
+     <button class="btn sm" onclick="exportScenario()">⬇ Export MD</button><button class="btn sm" onclick="saveScenarioCollection()">❏ Save</button></div>
+   <div class="kv" style="margin-top:10px"><div class="k">Threat Actor</div><div>${esc(actor)}</div></div>
+   <div class="kv"><div class="k">Initial Access</div><div>${esc(acc)}</div></div>
+   <div class="sectitle">Scenario Overview</div>
+   <p>A ${esc(actor.toLowerCase())} targets a ${esc(env)} environment with the objective of ${esc(obj.toLowerCase())}. Entry is modelled via ${esc(acc.toLowerCase())}, after which the actor progresses through the kill chain using the techniques below. This scenario is for methodology understanding, risk analysis and defensive validation only.</p>
+   <div class="sectitle">Attack Sequence (ordered by tactic)</div>
+   <ol class="clean">${sorted.map(id=>{const t=REV.techById[id];return `<li><b class="mono" style="color:#ff8a94">${esc(id)}</b> — ${esc(t.name)} <span class="faint">(${esc(tacticName(t.tactics[0]))})</span><br><span class="muted" style="font-size:12.5px">${esc(t.summary)}</span></li>`;}).join('')}</ol>
+   <div class="sectitle">Kill Chain Coverage</div>${[...kc].map(x=>`<span class="chip on">${esc(REV.killById[x].name)}</span>`).join('')||'<span class="faint">—</span>'}
+   <div class="sectitle badge-def">Defensive Countermeasures (D3FEND)</div>${[...d3].map(x=>{const o=REV.d3ById[x];return `<span class="rel" onclick="go('d3fend','${x}')">🛡 ${esc(x)} ${esc(o.name).slice(0,22)}</span>`;}).join('')||'<span class="faint">—</span>'}
+   <div class="sectitle">Detection Opportunities</div><ul class="clean">${[...det].map(d=>`<li>${esc(d)}</li>`).join('')}</ul>
+   <div class="sectitle">Assessment Objectives</div><ul class="clean"><li>Validate detection coverage for each technique</li><li>Confirm the listed D3FEND countermeasures are deployed and effective</li><li>Document gaps and prioritise remediation</li></ul>
+   <div class="sectitle">Reporting Template</div><ul class="clean"><li>Executive summary — business risk of ${esc(obj.toLowerCase())}</li><li>Attack narrative — technique-by-technique</li><li>Detection & control gaps</li><li>Prioritised remediation and retest plan</li></ul>
+   </div>`;
+  $('#scenarioOut').innerHTML=html;window._lastScenario={env,actor,obj,acc,sorted};window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+}
+function exportScenario(){const s=window._lastScenario;if(!s)return;let md=`# ${s.obj} — ${s.env}\n\n- **Threat Actor:** ${s.actor}\n- **Initial Access:** ${s.acc}\n\n## Attack Sequence\n`;
+  s.sorted.forEach((id,i)=>{const t=REV.techById[id];md+=`${i+1}. **${id}** — ${t.name} (${tacticName(t.tactics[0])})\n   - ${t.summary}\n`;});
+  md+=`\n_Generated by TTP NEXUS for authorized assessment planning only._\n`;download('scenario.md',md,'text/markdown');toast('Scenario exported');}
+function saveScenarioCollection(){const s=window._lastScenario;if(!s)return;addCollection(s.obj+' — '+s.env,s.sorted);toast('Scenario saved as collection');}
+
+/* -------- STUDY MODE -------- */
+let studyTab='flash',flashIdx=0,flashFlip=false,quizState=null,flashDeckMode='all';
+function reviewQueue(){const srs=(store('progress')||{}).srs||{};return KB.attack.techniques.filter(t=>srs[t.id]==='review');}
+function flashDeck(){return flashDeckMode==='review'?reviewQueue():KB.attack.techniques;}
+function srMark(id,status){const p=store('progress')||{scores:[],bookmarks:[]};p.srs=p.srs||{};p.srs[id]=status;store('progress',p);toast(id+(status==='learned'?' marked learned':' queued for review'));}
+VIEWS.study=function(){
+  $('#main').innerHTML=`<h1 class="view-title">Study Mode</h1><p class="view-sub">Flashcards and quizzes generated from the local knowledge base. Progress saved locally.</p>
+   <div class="tabs"><div class="tab ${studyTab==='flash'?'active':''}" onclick="studyTab='flash';renderStudy()">Flashcards</div>
+     <div class="tab ${studyTab==='quiz'?'active':''}" onclick="studyTab='quiz';renderStudy()">Quiz</div>
+     <div class="tab ${studyTab==='prog'?'active':''}" onclick="studyTab='prog';renderStudy()">Progress</div></div>
+   <div id="studyBody"></div>`;
+  renderStudy();
+};
+function renderStudy(){const b=$('#studyBody');
+  if(studyTab==='flash'){const deck=flashDeck();if(!deck.length){b.innerHTML='<div class="panel"><p class="faint">Review queue is empty — switch to the full deck, or mark cards “Needs review”.</p><button class="btn sm" onclick="flashDeckMode=\'all\';renderStudy()">Full deck</button></div>';return;}
+    const t=deck[flashIdx%deck.length];const d3=(REV.attack2d3[t.id]||[]).map(x=>REV.d3ById[x].name);const srs=(store('progress')||{}).srs||{};const learned=srs[t.id]==='learned';
+    b.innerHTML=`<div class="row" style="justify-content:center;margin-bottom:12px"><button class="btn sm ${flashDeckMode==='all'?'primary':''}" onclick="flashDeckMode='all';flashIdx=0;renderStudy()">Full deck (${KB.attack.techniques.length})</button>
+       <button class="btn sm ${flashDeckMode==='review'?'primary':''}" onclick="flashDeckMode='review';flashIdx=0;renderStudy()">Review queue (${reviewQueue().length})</button>
+       <button class="btn sm" onclick="flashIdx=Math.floor(Math.random()*${deck.length});flashFlip=false;renderStudy()">🔀 Shuffle</button></div>
+     <div class="flash ${flashFlip?'flip':''}" onclick="flashFlip=!flashFlip;renderStudy()"><div class="flash-inner">
+       <div class="flash-face"><div class="faint mono">${esc(t.id)}${learned?' · ✅ learned':''}</div><h2 style="margin:8px 0">${esc(t.name)}</h2><p class="muted">Tactics: ${t.tactics.map(tacticName).join(', ')}</p><p class="faint" style="margin-top:auto">Click to reveal →</p></div>
+       <div class="flash-face flash-back"><div class="sectitle" style="margin-top:0">Description</div><p style="font-size:13px">${esc(t.summary)}</p>
+         <div class="sectitle">Defensive Countermeasure</div><p class="badge-def" style="font-size:13px">${d3.length?esc(d3.join(', ')):'—'}</p></div>
+     </div></div>
+     <div class="row" style="justify-content:center;margin-top:16px"><button class="btn" onclick="event.stopPropagation();flashIdx=(flashIdx-1+${deck.length})%${deck.length};flashFlip=false;renderStudy()">◀ Prev</button>
+       <span class="muted">${(flashIdx%deck.length)+1} / ${deck.length}</span>
+       <button class="btn" onclick="event.stopPropagation();flashIdx++;flashFlip=false;renderStudy()">Next ▶</button></div>
+     <div class="row" style="justify-content:center;margin-top:10px"><button class="btn sm danger" onclick="event.stopPropagation();srMark('${t.id}','review');flashIdx++;flashFlip=false;renderStudy()">↻ Needs review</button>
+       <button class="btn sm" onclick="event.stopPropagation();srMark('${t.id}','learned');flashIdx++;flashFlip=false;renderStudy()">✅ Learned</button>
+       <button class="btn sm" onclick="event.stopPropagation();bookmarkFlash('${t.id}')">★ Bookmark</button></div>`;
+  }else if(studyTab==='quiz'){
+    if(!quizState)quizState=genQuiz();
+    if(quizState.i>=quizState.pool.length){const pct=Math.round(quizState.score/quizState.pool.length*100);saveQuizScore(quizState.src||'ATT&CK quiz',pct);
+      b.innerHTML=`<div class="panel" style="text-align:center"><h2>Quiz complete</h2><div class="stat" style="display:inline-block;margin:14px"><div class="n">${pct}%</div><div class="l">${quizState.score}/${quizState.pool.length} correct</div></div>
+       <div><button class="btn primary" onclick="quizState=genQuiz();renderStudy()">New Quiz</button></div></div>`;return;}
+    const q=quizState.pool[quizState.i];
+    b.innerHTML=`<div class="panel"><div class="row"><span class="pill-count">Q ${quizState.i+1}/${quizState.pool.length}</span><span class="sp"></span><span class="muted">Score ${quizState.score}</span></div>
+       <h3 style="margin:12px 0">${esc(q.q)}</h3><div id="qopts">${q.a.map((opt,i)=>`<div class="qopt" onclick="answerQuiz(${i})">${esc(opt)}</div>`).join('')}</div>
+       ${quizState.src?`<p class="faint" style="margin-top:10px">Topic: ${esc(quizState.src)}</p>`:''}</div>`;
+  }else{const prog=store('progress')||{scores:[],bookmarks:[]};const srs=prog.srs||{};
+    const learned=Object.values(srs).filter(v=>v==='learned').length;const review=Object.values(srs).filter(v=>v==='review').length;
+    const cp=store('courses')||{};const doneL=Object.values(cp).reduce((a,c)=>a+(c.done?c.done.length:0),0);
+    const avg=prog.scores&&prog.scores.length?Math.round(prog.scores.reduce((a,s)=>a+s.pct,0)/prog.scores.length):0;
+    // weak areas = quiz sources below 70%
+    const weak=(prog.scores||[]).filter(s=>s.pct<70).map(s=>s.src);
+    b.innerHTML=`<div class="stat-grid" style="margin-bottom:14px">
+       <div class="stat def"><div class="n">${learned}</div><div class="l">Cards Learned</div></div>
+       <div class="stat off"><div class="n">${review}</div><div class="l">In Review Queue</div></div>
+       <div class="stat b"><div class="n">${doneL}</div><div class="l">Lessons Completed</div></div>
+       <div class="stat"><div class="n">${prog.scores?prog.scores.length:0}</div><div class="l">Quizzes Taken</div></div>
+       <div class="stat"><div class="n">${avg}%</div><div class="l">Avg Quiz Score</div></div>
+     </div>
+     ${weak.length?`<div class="panel" style="margin-bottom:14px"><div class="sectitle" style="margin-top:0">Weak Areas (quizzes under 70%)</div>${uniq(weak).map(w=>`<span class="chip">${esc(w)}</span>`).join('')}</div>`:''}
+     <div class="panel"><div class="sectitle" style="margin-top:0">Quiz History</div>
+       ${prog.scores&&prog.scores.length?prog.scores.slice(-12).reverse().map(s=>`<div class="checkitem">📊 <span>${esc(s.src)} — <b>${s.pct}%</b> <span class="faint">${esc(s.date)}</span></span></div>`).join(''):'<p class="faint">No quizzes taken yet.</p>'}
+       <div class="sectitle">Bookmarked Techniques</div>
+       ${prog.bookmarks&&prog.bookmarks.length?prog.bookmarks.map(id=>`<span class="rel" onclick="openId('${id}')">★ ${esc(id)}</span>`).join(''):'<p class="faint">None bookmarked.</p>'}
+       <hr class="sep"><button class="btn sm" onclick="exportProgress()">⬇ Export Progress</button>
+       <button class="btn sm" onclick="document.getElementById('progImp').click()">⬆ Import</button>
+       <input type="file" id="progImp" accept=".json" style="display:none" onchange="importProgress(this)">
+       <button class="btn sm danger" onclick="if(confirm('Reset all progress?')){store('progress',{scores:[],bookmarks:[]});renderStudy()}">Reset</button></div>`;
+  }
+}
+function genQuiz(){const techs=KB.attack.techniques;const pool=[];
+  for(let i=0;i<8;i++){const t=techs[Math.floor(Math.random()*techs.length)];const type=Math.floor(Math.random()*3);
+    if(type===0){const correct=tacticName(t.tactics[0]);const opts=uniq([correct,...shuffle(KB.attack.tactics).map(x=>x.name)]).slice(0,4);pool.push({q:`Which tactic does ${t.id} (${t.name}) primarily belong to?`,a:shuffle(opts),c:correct});}
+    else if(type===1){const d3=(REV.attack2d3[t.id]||[]).map(x=>REV.d3ById[x].name);if(!d3.length){i--;continue;}const correct=d3[0];const opts=uniq([correct,...shuffle(KB.d3fend.techniques).map(x=>x.name)]).slice(0,4);pool.push({q:`Which D3FEND countermeasure helps counter ${t.id} (${t.name})?`,a:shuffle(opts),c:correct});}
+    else{const correct=t.name;const opts=uniq([correct,...shuffle(techs).map(x=>x.name)]).slice(0,4);pool.push({q:`Which technique has the ID ${t.id}?`,a:shuffle(opts),c:correct});}}
+  return{pool:pool.map(p=>({q:p.q,a:p.a,c:p.a.indexOf(p.c)})),i:0,score:0,src:'ATT&CK quiz'};}
+function shuffle(a){a=a.slice();for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];}return a;}
+function answerQuiz(i){const q=quizState.pool[quizState.i];const opts=$$('#qopts .qopt');opts.forEach((o,k)=>{o.style.pointerEvents='none';if(k===q.c)o.classList.add('correct');if(k===i&&i!==q.c)o.classList.add('wrong');});
+  if(i===q.c)quizState.score++;setTimeout(()=>{quizState.i++;renderStudy();},850);}
+function saveQuizScore(src,pct){const p=store('progress')||{scores:[],bookmarks:[]};p.scores=p.scores||[];p.scores.push({src,pct,date:new Date().toISOString().slice(0,10)});store('progress',p);}
+function bookmarkFlash(id){const p=store('progress')||{scores:[],bookmarks:[]};p.bookmarks=uniq([...(p.bookmarks||[]),id]);store('progress',p);toast('Bookmarked '+id);}
+function exportProgress(){download('ttp-progress.json',JSON.stringify(store('progress')||{},null,2),'application/json');}
+function importProgress(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{store('progress',JSON.parse(r.result));renderStudy();toast('Progress imported');}catch(e){toast('Invalid file');}};r.readAsText(f);}
+
+/* -------- COLLECTIONS -------- */
+function addCollection(name,items){let cols=store('collections')||[];let c=cols.find(x=>x.name===name);if(c){c.items=uniq([...c.items,...items]);}else{cols.push({name,items:uniq(items),created:new Date().toISOString().slice(0,10)});}store('collections',cols);}
+function addToCollectionPrompt(id){let cols=store('collections')||[];const names=cols.map(c=>c.name);
+  const name=prompt('Add '+id+' to collection (existing: '+(names.join(', ')||'none')+'). Enter a name:','Windows Domain Compromise Assessment');if(!name)return;addCollection(name,[id]);toast(id+' → '+name);}
+VIEWS.collections=function(){let cols=store('collections')||[];
+  $('#main').innerHTML=`<h1 class="view-title">Collections</h1><p class="view-sub">Custom cross-framework knowledge sets you can export as a package.</p>
+   <div class="panel" style="margin-bottom:12px"><div class="row"><input class="field" id="newCol" placeholder="New collection name…" style="flex:1"><button class="btn" onclick="createCol()">+ Create</button></div></div>
+   ${cols.length?cols.map((c,i)=>`<div class="panel" style="margin-bottom:12px"><div class="row"><h3 style="margin:0">❏ ${esc(c.name)}</h3><span class="pill-count">${c.items.length}</span><span class="faint">${esc(c.created||'')}</span>
+     <span class="sp"></span><button class="btn sm" onclick="exportCollection(${i})">⬇ Export Package</button><button class="btn sm danger" onclick="delCol(${i})">Delete</button></div>
+     <div style="margin-top:10px">${c.items.map(id=>{const o=IDX.byId[id];return `<span class="rel" onclick="openId('${id}')">${o?`<span class="tag ${o.fw}" style="font-size:9px">${o.fw}</span> `:''}${esc(id)} <b style="cursor:pointer" onclick="event.stopPropagation();removeFromCol(${i},'${id}')">×</b></span>`;}).join('')||'<span class="faint">Empty — add items from any detail panel.</span>'}</div></div>`).join(''):'<div class="panel"><p class="faint">No collections yet. Create one above, or use "+ Collection" on any technique, pattern or countermeasure.</p></div>'}`;
+};
+function createCol(){const n=$('#newCol').value.trim();if(!n)return;addCollection(n,[]);VIEWS.collections();}
+function delCol(i){if(!confirm('Delete this collection?'))return;let c=store('collections')||[];c.splice(i,1);store('collections',c);VIEWS.collections();}
+function removeFromCol(i,id){let c=store('collections')||[];c[i].items=c[i].items.filter(x=>x!==id);store('collections',c);VIEWS.collections();}
+function exportCollection(i){const c=(store('collections')||[])[i];openExport({scope:'collection',collection:c});}
+
+/* -------- EXPORT CENTER -------- */
+VIEWS.export=function(){openExport({scope:'all'});};
+function gatherRecords(scope,collection){
+  let ids=[];
+  if(scope==='collection'&&collection)ids=collection.items;
+  else if(scope==='attack')return KB.attack.techniques.map(t=>recT(t));
+  else{ // all
+    return [].concat(KB.attack.techniques.map(recT),KB.capec.map(recC),KB.cwe.map(recW),KB.cve.map(recV),KB.d3fend.techniques.map(recD));
+  }
+  return ids.map(id=>{const o=IDX.byId[id];if(!o)return null;
+    if(o.type==='technique'||o.type==='subtechnique'){const t=REV.techById[id]||REV.subById[id];return t?recT(t):{id,name:o.name,type:o.type};}
+    if(o.type==='pattern')return recC(REV.capecById[id]);
+    if(o.type==='weakness')return recW(REV.cweById[id]);
+    if(o.type==='vulnerability')return recV(REV_cve(id));
+    if(o.type==='countermeasure')return recD(REV.d3ById[id]);
+    return {id,name:o.name,type:o.type,framework:o.fw};}).filter(Boolean);
+}
+const recT=t=>({id:t.id,name:t.name,framework:'ATT&CK',type:'technique',tactics:t.tactics.map(tacticName),platforms:t.platforms,description:t.summary,detection:t.detection,mitigations:t.mitigations,capec:REV.attack2capec[t.id]||t.capec||[],cwe:REV.attack2cwe[t.id]||t.cwe||[],d3fend:REV.attack2d3[t.id]||[],killchain:t.killchain||[]});
+const recC=c=>({id:c.id,name:c.name,framework:'CAPEC',type:'attack-pattern',abstraction:c.abstraction,description:c.summary,cwe:c.cwe,attack:c.attack});
+const recW=w=>({id:w.id,name:w.name,framework:'CWE',type:'weakness',description:w.summary,consequences:w.consequences,capec:w.capec,attack:w.attack});
+const recV=v=>({id:v.id,name:v.id,framework:'CVE',type:'vulnerability',description:v.desc,severity:v.severity,cvss:v.cvss,products:v.products,cwe:v.cwe});
+const recD=d=>({id:d.id,name:d.name,framework:'D3FEND',type:'countermeasure',description:d.definition,tactic:d.tactic,counters:d.counters,artifacts:d.artifacts});
+
+function openExport(opts){const scope=opts.scope;const recs=gatherRecords(scope,opts.collection);
+  $('#main').innerHTML=`<h1 class="view-title">Export Center</h1><p class="view-sub">Export knowledge-base records and relationships. ${scope==='collection'?'Collection: <b>'+esc(opts.collection.name)+'</b>':''}</p>
+   <div class="panel"><div class="grid" style="grid-template-columns:repeat(auto-fit,minmax(200px,1fr))">
+     <div><label class="lbl">Scope</label><select class="field" id="exScope" style="width:100%" onchange="reExport()">
+       <option value="all" ${scope==='all'?'selected':''}>All records (${C.attack_techniques+C.capec+C.cwe+C.cve+C.d3fend})</option>
+       <option value="attack" ${scope==='attack'?'selected':''}>ATT&CK techniques (${C.attack_techniques})</option>
+       ${scope==='collection'?`<option value="collection" selected>Collection: ${esc(opts.collection.name)}</option>`:''}
+     </select></div>
+     <div><label class="lbl">Report Title</label><input class="field" id="exTitle" value="TTP NEXUS Export" style="width:100%"></div>
+     <div><label class="lbl">Classification</label><input class="field" id="exClass" value="UNCLASSIFIED // FOR TRAINING" style="width:100%"></div>
+     <div><label class="lbl">Author</label><input class="field" id="exAuthor" value="" placeholder="your name" style="width:100%"></div>
+   </div>
+   <div class="row" style="margin-top:14px">
+     <button class="btn primary" onclick="doExport('json')">JSON</button>
+     <button class="btn" onclick="doExport('csv')">CSV</button>
+     <button class="btn" onclick="doExport('md')">Markdown</button>
+     <button class="btn" onclick="doExport('html')">HTML Report</button>
+     <button class="btn" onclick="doExport('stix')">STIX 2.1</button>
+     <button class="btn" onclick="window.print()">🖨 Print / PDF</button>
+   </div>
+   <div class="sectitle">Preview <span class="pill-count">${recs.length} records</span></div>
+   <pre class="mono" id="exPreview" style="background:var(--panel2);border:1px solid var(--border);border-radius:8px;padding:12px;max-height:320px;overflow:auto;font-size:11.5px;white-space:pre-wrap"></pre>
+   </div>`;
+  window._exOpts=opts;$('#exPreview').textContent=JSON.stringify(recs.slice(0,3),null,2)+(recs.length>3?'\n… +'+(recs.length-3)+' more':'');
+}
+function reExport(){const s=$('#exScope').value;openExport(s==='collection'?window._exOpts:{scope:s});}
+function curRecs(){const s=$('#exScope').value;return gatherRecords(s,window._exOpts&&window._exOpts.collection);}
+function exMeta(){return{title:$('#exTitle').value,classification:$('#exClass').value,author:$('#exAuthor').value||'TTP NEXUS',generated:new Date().toISOString(),dataset:KB.meta,note:'Paraphrased, labelled knowledge base — not official framework text.'};}
+function doExport(fmt){const recs=curRecs();const meta=exMeta();
+  if(fmt==='json'){download('ttp-export.json',JSON.stringify({meta,records:recs},null,2),'application/json');}
+  else if(fmt==='csv'){const cols=['id','name','framework','type','description'];let rows=[cols];recs.forEach(r=>rows.push(cols.map(c=>Array.isArray(r[c])?r[c].join('; '):(r[c]||''))));
+    download('ttp-export.csv',rows.map(r=>r.map(c=>`"${String(c).replace(/"/g,'""')}"`).join(',')).join('\n'),'text/csv');}
+  else if(fmt==='md'){let md=`# ${meta.title}\n\n> ${meta.classification} · ${meta.author} · ${meta.generated.slice(0,10)}\n\n_${meta.note}_\n\n`;
+    recs.forEach(r=>{md+=`## ${r.id} — ${r.name}\n\n- **Framework:** ${r.framework}\n- **Type:** ${r.type}\n`;if(r.tactics)md+=`- **Tactics:** ${r.tactics.join(', ')}\n`;if(r.description)md+=`\n${r.description}\n`;
+      if(r.capec&&r.capec.length)md+=`\n- CAPEC: ${r.capec.join(', ')}`;if(r.cwe&&r.cwe.length)md+=`\n- CWE: ${r.cwe.join(', ')}`;if(r.d3fend&&r.d3fend.length)md+=`\n- D3FEND: ${r.d3fend.join(', ')}`;md+=`\n\n---\n\n`;});
+    download('ttp-export.md',md,'text/markdown');}
+  else if(fmt==='html'){let h=`<!doctype html><meta charset=utf8><title>${esc(meta.title)}</title><style>body{font-family:system-ui;max-width:900px;margin:30px auto;padding:0 20px;color:#111}h1{border-bottom:3px solid #35d0d8}.rec{border:1px solid #ddd;border-radius:8px;padding:14px;margin:12px 0}.mono{font-family:monospace;color:#0a7}.cls{background:#222;color:#fff;padding:4px 10px;border-radius:5px;font-size:12px;display:inline-block}</style>
+     <h1>${esc(meta.title)}</h1><p><span class="cls">${esc(meta.classification)}</span> · ${esc(meta.author)} · ${meta.generated.slice(0,10)}</p><p><em>${esc(meta.note)}</em></p>`;
+    recs.forEach(r=>{h+=`<div class="rec"><h3><span class="mono">${esc(r.id)}</span> — ${esc(r.name)}</h3><p><b>${esc(r.framework)}</b> · ${esc(r.type)}${r.tactics?' · '+esc(r.tactics.join(', ')):''}</p><p>${esc(r.description||'')}</p>
+      ${r.capec&&r.capec.length?`<p>CAPEC: ${r.capec.join(', ')}</p>`:''}${r.cwe&&r.cwe.length?`<p>CWE: ${r.cwe.join(', ')}</p>`:''}${r.d3fend&&r.d3fend.length?`<p>D3FEND: ${r.d3fend.join(', ')}</p>`:''}</div>`;});
+    download('ttp-report.html',h,'text/html');}
+  else if(fmt==='stix'){download('ttp-stix.json',JSON.stringify(toSTIX(recs,meta),null,2),'application/json');}
+  toast(fmt.toUpperCase()+' exported ('+recs.length+' records)');
+}
+function stixId(prefix){return prefix+'--'+'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return (c==='x'?r:(r&0x3|0x8)).toString(16);});}
+function toSTIX(recs,meta){const objs=[{type:'identity',spec_version:'2.1',id:stixId('identity'),created:meta.generated,modified:meta.generated,name:meta.author,identity_class:'organization'}];
+  const idmap={};
+  recs.forEach(r=>{let o=null;
+    if(r.framework==='ATT&CK'){o={type:'attack-pattern',spec_version:'2.1',id:stixId('attack-pattern'),created:meta.generated,modified:meta.generated,name:r.name,description:r.description,
+      external_references:[{source_name:'mitre-attack',external_id:r.id}],kill_chain_phases:(r.tactics||[]).map(t=>({kill_chain_name:'mitre-attack',phase_name:t.toLowerCase().replace(/ /g,'-')}))};}
+    else if(r.framework==='CAPEC'){o={type:'attack-pattern',spec_version:'2.1',id:stixId('attack-pattern'),created:meta.generated,modified:meta.generated,name:r.name,description:r.description,external_references:[{source_name:'capec',external_id:r.id}]};}
+    else if(r.framework==='CWE'){o={type:'vulnerability',spec_version:'2.1',id:stixId('vulnerability'),created:meta.generated,modified:meta.generated,name:r.id+' '+r.name,description:r.description,external_references:[{source_name:'cwe',external_id:r.id}]};}
+    else if(r.framework==='CVE'){o={type:'vulnerability',spec_version:'2.1',id:stixId('vulnerability'),created:meta.generated,modified:meta.generated,name:r.id,description:r.description,external_references:[{source_name:'cve',external_id:r.id}]};}
+    else if(r.framework==='D3FEND'){o={type:'course-of-action',spec_version:'2.1',id:stixId('course-of-action'),created:meta.generated,modified:meta.generated,name:r.name,description:r.description,external_references:[{source_name:'d3fend',external_id:r.id}]};}
+    if(o){idmap[r.id]=o.id;objs.push(o);}});
+  // relationships
+  recs.forEach(r=>{const src=idmap[r.id];if(!src)return;
+    (r.d3fend||[]).forEach(d=>{if(idmap[d])objs.push({type:'relationship',spec_version:'2.1',id:stixId('relationship'),created:meta.generated,modified:meta.generated,relationship_type:'mitigates',source_ref:idmap[d],target_ref:src});});
+    (r.capec||[]).forEach(c=>{if(idmap[c])objs.push({type:'relationship',spec_version:'2.1',id:stixId('relationship'),created:meta.generated,modified:meta.generated,relationship_type:'related-to',source_ref:src,target_ref:idmap[c]});});});
+  return{type:'bundle',id:stixId('bundle'),objects:objs};
+}
+function exportMapping(){const c=mapCorrelate();const recs=gatherRecords('collection',{items:uniq([...MAPsel,...c.capec,...c.cwe,...c.d3])});
+  download('attack-defence-mapping.json',JSON.stringify({meta:exMeta(),techniques:MAPsel,correlation:c,records:recs},null,2),'application/json');toast('Mapping exported');}
+
+/* -------- SETTINGS -------- */
+VIEWS.settings=function(){
+  $('#main').innerHTML=`<h1 class="view-title">Settings</h1><p class="view-sub">Local configuration and data management.</p>
+   <div class="panel"><div class="sectitle" style="margin-top:0">Dataset</div>
+     <div class="kv"><div class="k">ATT&CK</div><div>${esc(KB.meta.attack_version)}${KB.meta.attack_released?` <span class="faint">· released ${esc(KB.meta.attack_released)}</span>`:''}</div></div>
+     <div class="kv"><div class="k">D3FEND</div><div>${esc(KB.meta.d3fend_version)}</div></div>
+     <div class="kv"><div class="k">CAPEC</div><div>${esc(KB.meta.capec_version)}</div></div>
+     <div class="kv"><div class="k">CWE</div><div>${esc(KB.meta.cwe_version)}</div></div>
+     <div class="kv"><div class="k">OWASP</div><div>${esc(KB.meta.owasp_version||'—')}</div></div>
+     <div class="kv"><div class="k">Built / Updated</div><div>${esc(KB.meta.built)}${KB.meta.updated&&KB.meta.updated!==KB.meta.built?` · updated ${esc(KB.meta.updated)}`:''}</div></div>
+     ${KB.meta.origin||KB.meta.origin_attack||KB.meta.origin_mobile||KB.meta.origin_ics?`<div class="kv"><div class="k">Source</div><div><span class="conf validated">imported</span> ${esc(KB.meta.origin||KB.meta.origin_attack||KB.meta.origin_mobile||KB.meta.origin_ics)}</div></div>`:`<div class="kv"><div class="k">Source</div><div><span class="conf curated">built-in curated subset</span></div></div>`}
+     <div class="notice" style="margin-top:12px">${esc(KB.meta.note)}</div>
+   </div>
+   <div class="panel"><div class="row"><div class="sectitle" style="margin-top:0">Dataset Update Center</div><span class="sp"></span><span id="netStatus"></span><button class="btn sm" onclick="refreshOnline()">↻ Re-check</button></div>
+     <div class="row" style="margin:4px 0 10px"><b>Mode:</b>
+       <button class="btn sm ${getMode()==='offline'?'primary':''}" onclick="setMode('offline')">⚿ Offline</button>
+       <button class="btn sm ${getMode()==='online'?'primary':''}" onclick="setMode('online')">🌐 Online</button>
+       <span class="faint" style="font-size:11.5px">Online loads the full official ATT&CK catalog (full write-ups &amp; references) once a live connection is verified; Offline uses the embedded curated data with no network calls.</span></div>
+     <p class="muted">The status above is set by a live connectivity probe — online updates are only offered once a real connection is confirmed. Everything in the portal works offline; going Online enriches it with the complete official dataset.</p>
+     <div class="sectitle">Update from official sources ${KB.meta.attack_version?`<span class="faint" style="font-weight:400">· target: live MITRE ATT&CK STIX</span>`:''}</div>
+     ${['enterprise','mobile','ics'].map(dom=>`<div class="upd-src"><div><b>ATT&CK ${dom.charAt(0).toUpperCase()+dom.slice(1)}</b> <span class="faint" style="font-size:11px">${esc((KB.meta.sources||{})[dom]||'')}</span></div>
+        <button class="btn sm needs-online" onclick="fetchOfficial('${dom}')">⤓ Fetch & import</button></div>`).join('')}
+     <div id="updMsg"></div>
+     <div class="sectitle">Import dataset file <span class="faint" style="font-weight:400">· works offline / air-gapped</span></div>
+     <div class="drop" onclick="document.getElementById('dsImp').click()">⤓ Click to choose an official ATT&CK STIX JSON (e.g. <span class="mono">enterprise-attack.json</span>) or a TTP NEXUS dataset export</div>
+     <input type="file" id="dsImp" accept=".json,application/json" style="display:none" onchange="importFromFile(this)">
+     <div class="row" style="margin-top:10px">
+       <button class="btn sm" onclick="exportDatasetJSON()">⬇ Export current dataset</button>
+       ${KB.meta.origin||KB.meta.origin_attack||KB.meta.origin_mobile||KB.meta.origin_ics?`<button class="btn sm danger" onclick="revertBuiltin()">↺ Revert to built-in dataset</button>`:''}
+     </div>
+     <div class="faint" style="font-size:11px;margin-top:10px">Official downloads: ${Object.entries(KB.meta.source_pages||{}).map(([k,u])=>`<a href="${esc(u)}" target="_blank" rel="noopener">${esc(k)}</a>`).join(' · ')}. Imported datasets are stored locally in your browser (IndexedDB) and never uploaded.</div>
+   </div>
+   <div class="panel"><div class="sectitle" style="margin-top:0">Local Data</div>
+     <p class="muted">Collections, Navigator layers, study progress, search history and mappings are stored in your browser only (localStorage). Nothing leaves this device.</p>
+     <div class="row"><button class="btn sm" onclick="exportAllLocal()">⬇ Backup all local data</button>
+       <button class="btn sm" onclick="document.getElementById('allImp').click()">⬆ Restore</button>
+       <input type="file" id="allImp" accept=".json" style="display:none" onchange="importAllLocal(this)">
+       <button class="btn sm danger" onclick="if(confirm('Clear ALL local data?')){Object.keys(localStorage).filter(k=>k.startsWith('ttp_')).forEach(k=>localStorage.removeItem(k));toast('Cleared');go('dashboard')}">Clear all</button></div>
+   </div>`;
+  if(ONLINE===null)refreshOnline();else paintOnline();
+};
+function exportDatasetJSON(){download('ttp-nexus-dataset.json',JSON.stringify(KB),'application/json');toast('Dataset exported — re-importable here');}
+function exportAllLocal(){const o={};Object.keys(localStorage).filter(k=>k.startsWith('ttp_')).forEach(k=>o[k]=localStorage.getItem(k));download('ttp-hub-backup.json',JSON.stringify(o,null,2),'application/json');}
+function importAllLocal(inp){const f=inp.files[0];if(!f)return;const r=new FileReader();r.onload=()=>{try{const o=JSON.parse(r.result);Object.entries(o).forEach(([k,v])=>localStorage.setItem(k,v));toast('Restored');go('dashboard');}catch(e){toast('Invalid backup');}};r.readAsText(f);}
+
+/* -------- LEARNING PATHS / COURSES -------- */
+function courseProgress(cid){const p=store('courses')||{};return p[cid]||{done:[]};}
+function lessonDone(cid,li){const p=store('courses')||{};p[cid]=p[cid]||{done:[]};if(!p[cid].done.includes(li))p[cid].done.push(li);store('courses',p);renderCourse(cid);}
+VIEWS.paths=function(arg){
+  if(arg){renderCourse(arg);return;}
+  $('#main').innerHTML=`<h1 class="view-title">Learning Paths</h1><p class="view-sub">Structured courses that chain the knowledge base into guided lessons with progress tracking.</p>
+   <div class="course-grid">${KB.courses.map(c=>{const pr=courseProgress(c.id);const pct=Math.round(pr.done.length/c.lessons.length*100);
+     return `<div class="course-card" onclick="go('paths','${c.id}')"><div class="row"><span style="font-size:22px">${c.icon}</span><span class="sp"></span><span class="lvl">${esc(c.level)}</span></div>
+       <h3 style="margin:10px 0 4px">${esc(c.name)}</h3><p class="muted" style="font-size:12.5px">${esc(c.desc)}</p>
+       <div class="progbar"><i style="width:${pct}%"></i></div><div class="faint" style="font-size:11px;margin-top:5px">${pr.done.length}/${c.lessons.length} lessons · ${pct}%</div></div>`;}).join('')}</div>`;
+};
+function renderCourse(cid){const c=KB.courses.find(x=>x.id===cid);if(!c){go('paths');return;}setCrumb('paths');crumbItem(c.id,c.name);const pr=courseProgress(cid);const pct=Math.round(pr.done.length/c.lessons.length*100);
+  $('#main').innerHTML=`<div class="row"><button class="btn sm" onclick="go('paths')">← All paths</button><span class="sp"></span><span class="lvl">${esc(c.level)}</span></div>
+   <h1 class="view-title" style="margin-top:12px">${c.icon} ${esc(c.name)}</h1><p class="view-sub">${esc(c.desc)}</p>
+   <div class="panel" style="margin-bottom:12px"><div class="row"><b>Progress</b><span class="sp"></span><span class="pill-count">${pr.done.length}/${c.lessons.length} · ${pct}%</span></div><div class="progbar" style="margin-top:8px"><i style="width:${pct}%"></i></div></div>
+   ${c.lessons.map((l,i)=>{const done=pr.done.includes(i);return `<div class="lesson ${done?'done':''}">
+     <div class="row"><h4>${done?'✅ ':''}Lesson ${i+1}: ${esc(l.title)}</h4><span class="sp"></span>${done?'<span class="conf official">Completed</span>':`<button class="btn sm" onclick="lessonDone('${cid}',${i})">Mark complete</button>`}</div>
+     <p style="margin:8px 0">${esc(l.body)}</p>
+     ${l.refs&&l.refs.length?`<div class="faint" style="font-size:11px;margin-bottom:5px">Explore:</div>${l.refs.map(r=>`<span class="rel" onclick="openId('${r}')">${esc(r)}${IDX.byId[r]?' '+esc(IDX.byId[r].name).slice(0,22):''}</span>`).join('')}`:''}</div>`;}).join('')}
+   ${c.quiz&&c.quiz.length?`<div class="panel"><div class="row"><h3 style="margin:0">Knowledge Check</h3><span class="sp"></span><button class="btn primary sm" onclick="startCourseQuiz('${cid}')">▶ Start quiz (${c.quiz.length})</button></div><p class="muted">Test what you learned in this path.</p></div>`:''}`;
+}
+function startCourseQuiz(cid){const c=KB.courses.find(x=>x.id===cid);quizState={pool:c.quiz.map(q=>({q:q.q,a:q.a,c:q.c})),i:0,score:0,src:c.name};go('study');setTimeout(()=>{studyTab='quiz';renderStudy();},30);}
+
+/* -------- INTEGRITY & COVERAGE DASHBOARD -------- */
+VIEWS.validate=function(){
+  // integrity checks
+  const broken=[],orphans=[],dupes=[];
+  const techIds=new Set(KB.attack.techniques.map(t=>t.id));
+  KB.capec.forEach(c=>(c.attack||[]).forEach(a=>{if(!techIds.has(a)&&!REV.subById[a])broken.push(`CAPEC ${c.id} → missing ATT&CK ${a}`);}));
+  KB.d3fend.techniques.forEach(d=>(d.counters||[]).forEach(a=>{if(!techIds.has(a)&&!REV.subById[a])broken.push(`D3FEND ${d.id} → missing ATT&CK ${a}`);}));
+  KB.cwe.forEach(w=>(w.capec||[]).forEach(c=>{if(!REV.capecById[c])broken.push(`CWE ${w.id} → missing CAPEC ${c}`);}));
+  KB.cve.forEach(v=>(v.cwe||[]).forEach(w=>{if(!REV.cweById[w])broken.push(`CVE ${v.id} → missing CWE ${w}`);}));
+  KB.attack.techniques.forEach(t=>{const rc=(REV.attack2capec[t.id]||t.capec||[]).length+(REV.attack2cwe[t.id]||[]).length+(REV.attack2d3[t.id]||[]).length;if(rc===0)orphans.push(t.id+' — '+t.name);});
+  const seen={};KB.attack.techniques.forEach(t=>{if(seen[t.id])dupes.push(t.id);seen[t.id]=1;});
+  // coverage
+  const tot=KB.attack.techniques.length;
+  const wDet=KB.attack.techniques.filter(t=>KB.detection.techniques[t.id]).length;
+  const wMit=KB.attack.techniques.filter(t=>(t.mitigations||[]).length).length;
+  const wD3=KB.attack.techniques.filter(t=>(REV.attack2d3[t.id]||[]).length).length;
+  const wCap=KB.attack.techniques.filter(t=>(REV.attack2capec[t.id]||t.capec||[]).length).length;
+  const pct=n=>Math.round(n/tot*100);
+  const covRow=(label,n,cls)=>`<div class="cov-row"><span>${label}</span><div class="cov-bar"><i class="${cls}" style="width:${pct(n)}%"></i></div><span class="mono">${pct(n)}%</span></div>`;
+  // confidence tally
+  let off=0,cur=0;KB.attack.techniques.forEach(t=>{off+=(REV.attack2capec[t.id]||[]).length+(REV.attack2d3[t.id]||[]).length;cur+=((t.capec||[]).filter(x=>!(REV.attack2capec[t.id]||[]).includes(x)).length)+(REV.attack2cwe[t.id]||[]).length;});
+  const gaps=KB.attack.techniques.filter(t=>!KB.detection.techniques[t.id]);
+  $('#main').innerHTML=`<h1 class="view-title">Integrity & Coverage</h1><p class="view-sub">Relationship validation and defensive-coverage analysis across the embedded knowledge base.</p>
+   <div class="stat-grid" style="margin-bottom:16px">
+     <div class="stat ${broken.length?'off':'def'}"><div class="n">${broken.length}</div><div class="l">Broken References</div></div>
+     <div class="stat b"><div class="n">${orphans.length}</div><div class="l">Techniques w/o Links</div></div>
+     <div class="stat ${dupes.length?'off':'def'}"><div class="n">${dupes.length}</div><div class="l">Duplicate IDs</div></div>
+     <div class="stat"><div class="n">${off}</div><div class="l">Official Mappings</div></div>
+     <div class="stat"><div class="n">${cur}</div><div class="l">Curated Mappings</div></div>
+   </div>
+   <div class="panel"><div class="sectitle" style="margin-top:0">Defensive Coverage (of ${tot} Enterprise techniques)</div>
+     ${covRow('Detection profile',wDet,'b')}
+     ${covRow('ATT&CK mitigation',wMit,'g')}
+     ${covRow('D3FEND countermeasure',wD3,'g')}
+     ${covRow('CAPEC pattern',wCap,'a')}
+     <p class="faint" style="font-size:11px;margin-top:8px">Coverage reflects the curated educational dataset, not full ATT&CK. Detection "profiles" are curated guidance, not validated detections — validate in your environment and track status in the Navigator Matrix.</p>
+   </div>
+   <div class="panel" style="margin-top:14px"><div class="sectitle" style="margin-top:0">Relationship Validation</div>
+     <div class="checkitem ${broken.length?'integrity-warn':'integrity-ok'}">${broken.length?'⚠':'✔'} <span><b>Broken references:</b> ${broken.length?'':'none — every cross-framework link resolves to an existing record.'}</span></div>
+     ${broken.length?`<ul class="clean">${broken.slice(0,30).map(b=>`<li class="integrity-warn">${esc(b)}</li>`).join('')}</ul>`:''}
+     <div class="checkitem ${dupes.length?'integrity-warn':'integrity-ok'}">${dupes.length?'⚠':'✔'} <span><b>Duplicate identifiers:</b> ${dupes.length?esc(dupes.join(', ')):'none.'}</span></div>
+   </div>
+   <div class="panel" style="margin-top:14px"><div class="sectitle" style="margin-top:0">Detection Gaps <span class="pill-count">${gaps.length}</span></div>
+     <p class="muted">Techniques without a curated detection profile — candidates for detection-engineering work:</p>
+     ${gaps.map(t=>`<span class="rel" onclick="go('attack','${t.id}')">${esc(t.id)} ${esc(t.name).slice(0,22)}</span>`).join('')}
+   </div>
+   <div class="panel" style="margin-top:14px"><div class="sectitle" style="margin-top:0">Techniques Without Any Cross-Framework Link <span class="pill-count">${orphans.length}</span></div>
+     ${orphans.length?orphans.map(o=>`<div class="faint" style="font-size:12px">• ${esc(o)}</div>`).join(''):'<p class="integrity-ok">None — every technique connects to at least one other framework.</p>'}
+   </div>`;
+};
+
+/* -------- COMMAND PALETTE -------- */
+let cmdkItems=[],cmdkSel=0;
+function openCmdk(){const nav=NAV.filter(n=>n.id).map(n=>({kind:'nav',id:n.id,label:'Go: '+n.label,ic:n.ic}));
+  const root=document.createElement('div');root.className='cmdk-bg';root.id='cmdkBg';
+  root.innerHTML=`<div class="cmdk"><input id="cmdkIn" placeholder="Jump to a view or search any ID / keyword…" autocomplete="off"><div class="cmdk-list" id="cmdkList"></div>
+    <div class="cmdk-foot"><span><kbd>↑</kbd><kbd>↓</kbd> navigate</span><span><kbd>↵</kbd> open</span><span><kbd>esc</kbd> close</span></div></div>`;
+  root.onclick=e=>{if(e.target===root)closeCmdk();};document.getElementById('modalRoot').appendChild(root);
+  const inp=document.getElementById('cmdkIn');
+  const upd=()=>{const q=inp.value.trim();let items;
+    if(!q){items=nav;}else{const res=runSearch(q).slice(0,8).map(o=>({kind:'id',id:o.id,label:o.name,fw:o.fw}));
+      const navm=nav.filter(n=>n.label.toLowerCase().includes(q.toLowerCase()));items=[...navm,...res];}
+    cmdkItems=items;cmdkSel=0;paintCmdk();};
+  inp.addEventListener('input',upd);
+  inp.addEventListener('keydown',e=>{if(e.key==='ArrowDown'){e.preventDefault();cmdkSel=Math.min(cmdkItems.length-1,cmdkSel+1);paintCmdk();}
+    else if(e.key==='ArrowUp'){e.preventDefault();cmdkSel=Math.max(0,cmdkSel-1);paintCmdk();}
+    else if(e.key==='Enter'){e.preventDefault();runCmdk(cmdkSel);}
+    else if(e.key==='Escape'){closeCmdk();}});
+  upd();inp.focus();
+}
+function paintCmdk(){const l=document.getElementById('cmdkList');if(!l)return;
+  l.innerHTML=cmdkItems.map((it,i)=>`<div class="cmdk-item ${i===cmdkSel?'on':''}" onclick="runCmdk(${i})">
+    ${it.kind==='nav'?`<span class="ic">${it.ic}</span>`:`<span class="tag ${it.fw}">${it.fw.toUpperCase()}</span>`}
+    ${it.kind==='id'?`<span class="mono" style="color:var(--cyan)">${esc(it.id)}</span>`:''}<span>${esc(it.label)}</span></div>`).join('')||'<div class="cmdk-item faint">No matches</div>';
+}
+function runCmdk(i){const it=cmdkItems[i];if(!it)return;closeCmdk();if(it.kind==='nav')go(it.id);else{addRecentView(it.id);openId(it.id);}}
+function closeCmdk(){const b=document.getElementById('cmdkBg');if(b)b.remove();}
+
+/* -------- THEME -------- */
+function applyTheme(t){document.documentElement.setAttribute('data-theme',t);store('theme',t);}
+function toggleTheme(){const cur=document.documentElement.getAttribute('data-theme')==='light'?'dark':'light';applyTheme(cur);}
+
+/* ============================ CONNECTIVITY + DATASET UPDATE ============================ */
+let ONLINE=null; // null=unknown/checking, true, false — only true after a real successful probe
+function probeOnline(timeout=6000){
+  return new Promise(res=>{
+    if(typeof navigator!=='undefined'&&navigator.onLine===false){res(false);return;} // quick negative hint only
+    const hosts=(KB.meta.probe_hosts||[]);if(!hosts.length){res(false);return;}
+    let done=false,errs=0;const finish=v=>{if(!done){done=true;res(v);}};
+    const to=setTimeout(()=>finish(false),timeout);
+    hosts.forEach(h=>{try{const img=new Image();
+      img.onload=()=>{clearTimeout(to);finish(true);};
+      img.onerror=()=>{if(++errs>=hosts.length){clearTimeout(to);finish(false);}};
+      img.src=h+(h.indexOf('?')>=0?'&':'?')+'_='+Date.now();
+    }catch(e){if(++errs>=hosts.length){clearTimeout(to);finish(false);}}});
+  });
+}
+function paintOnline(){const d=$('#netdot');if(d){d.className='netdot '+(ONLINE===null?'chk':ONLINE?'on':'off');d.title='Connectivity: '+(ONLINE===null?'checking…':ONLINE?'online':'offline');}
+  const s=$('#netStatus');if(s)s.innerHTML=ONLINE===null?'<span class="faint">● Checking…</span>':ONLINE?'<span class="integrity-ok">● Online</span> <span class="faint">— verified by live probe</span>':'<span class="integrity-warn">● Offline</span> <span class="faint">— no connectivity to update sources</span>';
+  const btns=$$('.needs-online');btns.forEach(b=>{b.disabled=ONLINE!==true;b.style.opacity=ONLINE===true?'1':'.5';});}
+async function refreshOnline(){ONLINE=null;paintOnline();ONLINE=await probeOnline();paintOnline();return ONLINE;}
+/* Online / Offline mode — controls whether the portal reaches live sources and loads the full catalog */
+function getMode(){return store('mode')||'offline';}
+function datasetIsLive(){return !!(KB.meta&&KB.meta.live);}
+function paintMode(){const b=$('#modeBtn');const m=getMode();if(b){b.textContent=m==='online'?'🌐 Online':'⚿ Offline';b.className='btn sm noprint'+(m==='online'?' primary':'');b.title='Mode: '+m+(m==='online'?' — live sources on; click for offline':' — embedded data only; click to go online');}}
+async function setMode(m){store('mode',m);paintMode();
+  if(m==='online'){const ok=await refreshOnline();
+    if(!ok){toast('No live connection confirmed — staying on embedded data. The full catalog loads automatically once a real connection is available.');return;}
+    if(!datasetIsLive()){toast('Online — loading the full official ATT&CK catalog…');go('settings');await fetchOfficial('enterprise');}
+    else toast('Online mode — live write-ups & references enabled.');
+  }else{ONLINE=null;paintOnline();toast('Offline mode — embedded curated data only; no network calls.');}
+}
+function toggleMode(){setMode(getMode()==='online'?'offline':'online');}
+
+/* IndexedDB (large dataset override lives here, never localStorage) */
+function idbOpen(){return new Promise((res,rej)=>{try{const r=indexedDB.open('ttpnexus',1);r.onupgradeneeded=()=>{r.result.createObjectStore('kv');};r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error);}catch(e){rej(e);}});}
+async function idbSet(k,v){try{const db=await idbOpen();return await new Promise((res,rej)=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').put(v,k);t.oncomplete=()=>res(true);t.onerror=()=>rej(t.error);});}catch(e){return false;}}
+async function idbGet(k){try{const db=await idbOpen();return await new Promise(res=>{const t=db.transaction('kv','readonly');const rq=t.objectStore('kv').get(k);rq.onsuccess=()=>res(rq.result||null);rq.onerror=()=>res(null);});}catch(e){return null;}}
+async function idbDel(k){try{const db=await idbOpen();return await new Promise(res=>{const t=db.transaction('kv','readwrite');t.objectStore('kv').delete(k);t.oncomplete=()=>res(true);t.onerror=()=>res(false);});}catch(e){return false;}}
+
+/* STIX 2.1 → TTP NEXUS schema parser (pure, for official ATT&CK bundles) */
+function parseAttackStix(bundle){
+  const objs=(bundle&&bundle.objects)||[];
+  const mitreExt=o=>{const r=(o.external_references||[]).find(x=>x.source_name&&/mitre/i.test(x.source_name)&&x.external_id);return r?r.external_id:null;};
+  const alive=o=>!o.revoked&&!o.x_mitre_deprecated;
+  const tactics=[];const tacByShort={};
+  objs.filter(o=>o.type==='x-mitre-tactic'&&alive(o)).forEach((o,i)=>{const id=mitreExt(o);if(!id)return;tactics.push({id,name:o.name,short:o.x_mitre_shortname,order:i+1});tacByShort[o.x_mitre_shortname]=id;});
+  const coa={};objs.filter(o=>o.type==='course-of-action').forEach(o=>{const e=mitreExt(o);coa[o.id]=o.name+(e?' ('+e+')':'');});
+  const mitByTech={};objs.filter(o=>o.type==='relationship'&&o.relationship_type==='mitigates').forEach(r=>{(mitByTech[r.target_ref]=mitByTech[r.target_ref]||[]).push(coa[r.source_ref]);});
+  const byId={};const parents=[];const subs=[];
+  objs.filter(o=>o.type==='attack-pattern'&&alive(o)).forEach(o=>{const id=mitreExt(o);if(!id)return;
+    const full=(o.description||'').replace(/\s+/g,' ').trim();
+    const refs=(o.external_references||[]).filter(r=>r.url).map(r=>({name:r.source_name||'',id:r.external_id||'',url:r.url,desc:(r.description||'')}));
+    const rec={id,name:o.name,summary:full.slice(0,700),desc:full,references:refs,official:true,
+      platforms:o.x_mitre_platforms||[],detection:(o.x_mitre_detection||'').replace(/\s+/g,' ').trim(),
+      tactics:(o.kill_chain_phases||[]).filter(k=>/mitre/i.test(k.kill_chain_name||'')).map(k=>tacByShort[k.phase_name]).filter(Boolean),
+      mitigations:(mitByTech[o.id]||[]).filter(Boolean),
+      capec:(o.external_references||[]).filter(r=>r.source_name==='capec'&&r.external_id).map(r=>r.external_id),
+      cwe:[],killchain:[],subs:[],_sub:!!o.x_mitre_is_subtechnique};
+    byId[id]=rec;(rec._sub?subs:parents).push(rec);});
+  subs.forEach(s=>{const p=byId[s.id.split('.')[0]];if(p)p.subs.push({id:s.id,name:s.name,summary:s.summary,desc:s.desc,references:s.references});});
+  parents.forEach(p=>delete p._sub);
+  const coll=objs.find(o=>o.type==='x-mitre-collection');
+  return {tactics,techniques:parents,subCount:subs.length,version:(coll&&coll.x_mitre_version)||null};
+}
+function detectDataset(obj){
+  if(obj&&obj.attack&&Array.isArray(obj.attack.techniques)&&obj.meta) return {kind:'nexus'};
+  if(obj&&obj.type==='bundle'&&Array.isArray(obj.objects)){const coll=obj.objects.find(o=>o.type==='x-mitre-collection');const nm=((coll&&coll.name)||'').toLowerCase();
+    let dom='attack';if(nm.includes('mobile'))dom='mobile';else if(nm.includes('ics'))dom='ics';return {kind:'stix',domain:dom};}
+  return null;
+}
+async function importDataset(obj,label){
+  const d=detectDataset(obj);if(!d){setUpdMsg('<span class="integrity-warn">Unrecognised file — expected an official ATT&CK STIX bundle or a TTP NEXUS dataset export.</span>');return false;}
+  if(d.kind==='nexus'){['attack','ics','mobile','d3fend','capec','cwe','cve','killchain','ptes','wstg','owasp_top10','nist_csf','nist_800115','learning','courses','detection','scenario_templates'].forEach(k=>{if(obj[k]!==undefined)KB[k]=obj[k];});
+    if(obj.meta){Object.keys(obj.meta).forEach(mk=>{if(mk!=='counts')KB.meta[mk]=obj.meta[mk];});}
+    KB.meta.updated=new Date().toISOString().slice(0,10);KB.meta.origin=label||'imported dataset';}
+  else{const parsed=parseAttackStix(obj);if(!parsed.techniques.length){setUpdMsg('<span class="integrity-warn">No live techniques found in bundle.</span>');return false;}
+    const dk=d.domain;KB[dk]={tactics:parsed.tactics,techniques:parsed.techniques};
+    KB.meta.updated=new Date().toISOString().slice(0,10);KB.meta['origin_'+dk]=label||'official STIX';KB.meta.live=true;
+    const vlabel=(parsed.version?'v'+parsed.version:'current')+' · full official catalog (fetched)';
+    if(dk==='attack')KB.meta.attack_version='ATT&CK '+vlabel;else if(dk==='mobile')KB.meta.mobile_version='ATT&CK Mobile '+vlabel;else if(dk==='ics')KB.meta.ics_version='ATT&CK ICS '+vlabel;}
+  rebuildAll();
+  const ok=await idbSet('kb_override',JSON.parse(JSON.stringify(KB)));
+  if(!ok)setUpdMsg('<span class="integrity-warn">Imported into this session, but could not persist (IndexedDB unavailable). It will reset on reload.</span>');
+  return true;
+}
+async function fetchOfficial(domain){
+  const url=(KB.meta.sources||{})[domain];if(!url){toast('No source URL for '+domain);return;}
+  let host;try{host=new URL(url).host;}catch(e){host=url;}
+  setUpdMsg('<span class="faint">Contacting '+esc(host)+' …</span>');
+  try{const resp=await fetch(url,{cache:'no-store'});if(!resp.ok)throw new Error('HTTP '+resp.status+' '+resp.statusText);
+    setUpdMsg('<span class="faint">Downloading & parsing '+esc(domain)+' dataset (this file is large)…</span>');
+    const json=await resp.json();const ok=await importDataset(json,'official STIX · fetched '+new Date().toISOString().slice(0,10));
+    if(ok){const key=domain==='enterprise'?'attack':domain;setUpdMsg('<span class="integrity-ok">✔ Imported official '+esc(domain)+' — '+KB[key].techniques.length+' techniques now loaded.</span>');toast('Dataset updated: '+domain);VIEWS.settings();}
+  }catch(e){setUpdMsg('<span class="integrity-warn">Could not fetch automatically: '+esc(e.message)+'.</span> <span class="faint">This is usually CORS, a network block, or being offline. Download the file from the official link and use “Import dataset file” below — that always works, including air-gapped.</span>');}
+}
+function setUpdMsg(h){const m=$('#updMsg');if(m)m.innerHTML=h;}
+function importFromFile(inp){const f=inp.files&&inp.files[0];if(!f)return;setUpdMsg('<span class="faint">Reading '+esc(f.name)+' ('+Math.round(f.size/1048576)+' MB)…</span>');
+  const r=new FileReader();r.onload=async()=>{try{const json=JSON.parse(r.result);const ok=await importDataset(json,'file: '+f.name);
+    if(ok){setUpdMsg('<span class="integrity-ok">✔ Imported from '+esc(f.name)+'.</span>');toast('Dataset imported');VIEWS.settings();}
+  }catch(e){setUpdMsg('<span class="integrity-warn">Import failed: '+esc(e.message)+' — is this valid JSON?</span>');}};
+  r.onerror=()=>setUpdMsg('<span class="integrity-warn">Could not read file.</span>');r.readAsText(f);}
+async function revertBuiltin(){if(!confirm('Discard the imported dataset and restore the built-in curated dataset? The page will reload.'))return;await idbDel('kb_override');location.reload();}
+
+/* ============================ INIT ============================ */
+function bootViews(){const hash=location.hash.slice(1);const[v,arg]=hash.split('/');
+  if(v&&VIEWS[v])go(v,arg);else go('dashboard');}
+function init(){buildIndex();buildRev();renderNav();wireSearch();
+  applyTheme(store('theme')||'dark');
+  $('#burger').onclick=()=>$('#sidebar').classList.toggle('collapsed');
+  $('#themeBtn').onclick=toggleTheme;
+  $('#cmdkBtn').onclick=openCmdk;
+  $('#modeBtn').onclick=toggleMode;paintMode();
+  document.addEventListener('keydown',e=>{if((e.ctrlKey||e.metaKey)&&e.key.toLowerCase()==='k'){e.preventDefault();if(!document.getElementById('cmdkBg'))openCmdk();}});
+  bootViews();
+  window.addEventListener('hashchange',()=>{const h=location.hash.slice(1);const[v2,a2]=h.split('/');if(v2&&v2!==CURRENT&&VIEWS[v2])go(v2,a2);});
+  // async: apply any previously imported dataset, THEN honour the chosen mode — neither blocks first paint
+  idbGet('kb_override').then(ov=>{
+    if(ov&&ov.attack&&ov.attack.techniques){try{Object.keys(ov).forEach(k=>{KB[k]=ov[k];});rebuildAll();bootViews();}catch(e){}}
+    if(getMode()==='online'){refreshOnline().then(ok=>{if(ok&&!datasetIsLive())fetchOfficial('enterprise');});}
+    else{ONLINE=null;paintOnline();}
+  }).catch(()=>{if(getMode()==='online')refreshOnline();});
+}
+init();
+</script>
+</body>
+</html>

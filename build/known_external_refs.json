@@ -1,0 +1,75 @@
+{
+  "description": "Real framework identifiers referenced by data/kb_data.json that are not in its curated subset. Each mapping is correct; the validator accepts only these listed pairs. Remove an entry once its target is added to the dataset (the validator fails on stale entries).",
+  "allow": [
+    {
+      "from": "capec:CAPEC-98",
+      "to": "CWE-1021",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "capec:CAPEC-49",
+      "to": "CWE-521",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "capec:CAPEC-549",
+      "to": "T1204",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "capec:CAPEC-21",
+      "to": "CWE-290",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "cwe:CWE-22",
+      "to": "CAPEC-126",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "cwe:CWE-352",
+      "to": "CAPEC-62",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "cve:CVE-2017-0144",
+      "to": "T1210",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "cve:CVE-2019-0708",
+      "to": "T1210",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "cve:CVE-2020-1472",
+      "to": "CWE-330",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "cve:CVE-2020-1472",
+      "to": "T1210",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "killchain:delivery",
+      "to": "T1189",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "d3fend:D3-RA",
+      "to": "T1531",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "d3fend:D3-SR",
+      "to": "T1561",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    },
+    {
+      "from": "d3fend:D3-AI",
+      "to": "T1046",
+      "reason": "real identifier outside the curated subset in data/kb_data.json; the mapping is correct but the target is not in the dataset yet"
+    }
+  ]
+}

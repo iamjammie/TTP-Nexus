@@ -1,0 +1,24 @@
+name: Validate
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    name: Dataset integrity, page is up to date
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Validate knowledge base (ids, required fields, cross-references, counts)
+        run: python3 build/validate_data.py
+      - name: Built page is up to date with the data
+        run: |
+          python3 build/assemble.py
+          git diff --exit-code -- index.html || (echo "index.html is stale: run build/assemble.py and commit" && exit 1)
